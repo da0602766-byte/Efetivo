@@ -1,0 +1,25 @@
+{
+  "id": "./",
+  "name": "Controle de Efetivo",
+  "short_name": "Efetivo",
+  "description": "Controle diário de efetivo, presença, histórico e relatórios.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F4F6F9",
+  "theme_color": "#0E3A4F",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
