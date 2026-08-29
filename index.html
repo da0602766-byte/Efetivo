@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0E3A4F">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Efetivo">
+  <title>Controle de Efetivo</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <style>
+    html,body{margin:0;width:100%;height:100%;background:#F4F6F9;overflow:hidden}
+    #app{display:block;width:100%;height:100dvh;border:0;background:#F4F6F9}
+    .offline{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:10;
+      padding:8px 12px;border-radius:999px;background:#111c25;color:#fff;
+      font:600 12px system-ui;box-shadow:0 6px 20px rgba(0,0,0,.2);display:none}
+    body.is-offline .offline{display:block}
+  </style>
+</head>
+<body>
+  <iframe id="app" title="Controle de Efetivo" src="./Controle-de-Efetivo.html"></iframe>
+  <div class="offline" role="status">Modo offline</div>
+  <script>
+    function updateOnlineState(){
+      document.body.classList.toggle('is-offline', !navigator.onLine);
+    }
+    addEventListener('online', updateOnlineState);
+    addEventListener('offline', updateOnlineState);
+    updateOnlineState();
+
+    if ('serviceWorker' in navigator) {
+      addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
