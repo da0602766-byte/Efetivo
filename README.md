@@ -1,2 +1,0 @@
-# Efetivo
-Sistema Efetivo
