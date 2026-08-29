@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0E3A4F">
+<title>Controle de Efetivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CONTROLE DE EFETIVO
+   ------------------------------------------------------------
+   >>> CONFIGURAÇÃO DO DONO: veja o bloco CONFIG_DONO no script
+   ============================================================ */
+
+:root{
+  --acc:#0E3A4F; --acc2:#1B7A8C; --acc-soft:#E6F0F3; --acc-ink:#0E3A4F;
+  --bg:#F4F6F9; --card:#FFFFFF; --ink:#111C25; --ink2:#3D4E5A; --muted:#7A8A96;
+  --line:#E8EDF1; --line2:#F1F5F8;
+  --green:#12A16B; --green-s:#E4F6EE;
+  --red:#E1524F; --red-s:#FDECEC;
+  --amber:#E0951B; --amber-s:#FCF2E0;
+  --blue:#3B82C4; --blue-s:#E9F1FA;
+  --purple:#7A5AC8; --purple-s:#F0EBFA;
+  --shadow:0 4px 20px -6px rgba(17,28,37,.10);
+  --shadow-lg:0 14px 34px -12px rgba(17,28,37,.24);
+  --r:20px; --r-sm:14px;
+}
+body[data-dark="1"]{
+  --bg:#0F171E; --card:#18232D; --ink:#EAF1F5; --ink2:#B9C8D2; --muted:#7F94A2;
+  --line:#243544; --line2:#1E2C38; --acc-soft:#1B2C38;
+  --green-s:#12312A; --red-s:#3A2020; --amber-s:#332818; --blue-s:#182A3A; --purple-s:#241F3A;
+  --shadow:0 4px 20px -6px rgba(0,0,0,.5); --shadow-lg:0 14px 34px -12px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;background:var(--bg);
+  color:var(--ink);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.45;
+  transition:background .3s,color .3s}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:15px}
+::-webkit-scrollbar{width:0;height:0}
+
+/* ---------- animations ---------- */
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes shimmer{0%{transform:translateX(-120%) rotate(18deg)}100%{transform:translateX(320%) rotate(18deg)}}
+@keyframes ring{from{stroke-dashoffset:var(--dash)}}
+.an{opacity:0;animation:rise .5s cubic-bezier(.22,1,.36,1) forwards;animation-delay:calc(var(--i,0)*55ms)}
+.an-pop{opacity:0;animation:pop .4s cubic-bezier(.22,1,.36,1) forwards;animation-delay:calc(var(--i,0)*45ms)}
+@media(prefers-reduced-motion:reduce){.an,.an-pop{animation:none;opacity:1}}
+
+.app{max-width:560px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;position:relative}
+
+/* ---------- top bar ---------- */
+.top{padding:18px 18px 4px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.top .tl{display:flex;align-items:center;gap:11px;min-width:0}
+.mark{width:42px;height:42px;border-radius:13px;flex:0 0 auto;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-weight:800;font-size:18px;
+  box-shadow:0 6px 16px -6px var(--acc)}
+.top .tt{min-width:0}
+.top .tt h1{font-size:19px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .tt p{font-size:12.5px;color:var(--muted);font-weight:500;margin-top:1px}
+.iconcircle{width:40px;height:40px;border-radius:13px;background:var(--card);display:grid;place-items:center;
+  flex:0 0 auto;box-shadow:var(--shadow);transition:transform .15s}
+.iconcircle:active{transform:scale(.92)}
+.iconcircle svg{width:20px;height:20px;stroke:var(--ink);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+.main{flex:1;padding:14px 16px 108px}
+
+/* ---------- hero gradient card ---------- */
+.hero{border-radius:24px;padding:20px;color:#fff;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,var(--acc) 0%,var(--acc2) 100%);
+  box-shadow:0 16px 34px -14px var(--acc)}
+.hero::after{content:"";position:absolute;top:-40%;left:0;width:60px;height:200%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);
+  animation:shimmer 3.4s ease-in-out 0.6s infinite}
+.hero .hl{font-size:12.5px;font-weight:600;opacity:.82;letter-spacing:.03em}
+.hero .hbig{display:flex;align-items:baseline;gap:9px;margin-top:6px}
+.hero .hbig .n{font-size:52px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.hero .hbig .u{font-size:15px;font-weight:600;opacity:.85}
+.hero .hsplit{display:flex;gap:10px;margin-top:16px}
+.hero .hsplit div{flex:1;background:rgba(255,255,255,.15);border-radius:14px;padding:10px 12px;
+  backdrop-filter:blur(6px)}
+.hero .hsplit .n{font-size:22px;font-weight:800;line-height:1}
+.hero .hsplit .l{font-size:11px;opacity:.85;font-weight:500;margin-top:3px}
+.hero .hdate{position:absolute;top:20px;right:20px;font-size:11.5px;font-weight:600;
+  background:rgba(255,255,255,.18);padding:6px 11px;border-radius:20px}
+
+/* ---------- tiles ---------- */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:14px}
+.tile{border-radius:var(--r);padding:16px 15px;text-align:left;position:relative;overflow:hidden;
+  transition:transform .15s}
+.tile:active{transform:scale(.96)}
+.tile .ti{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;margin-bottom:26px}
+.tile .ti svg{width:20px;height:20px;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.tile .tn{font-weight:700;font-size:15px;letter-spacing:-.01em}
+.tile .td{font-size:11.5px;color:var(--muted);margin-top:2px;font-weight:500}
+.t-green{background:var(--green-s)} .t-green .ti{background:var(--green)} .t-green .ti svg{stroke:#fff}
+.t-red{background:var(--red-s)} .t-red .ti{background:var(--red)} .t-red .ti svg{stroke:#fff}
+.t-amber{background:var(--amber-s)} .t-amber .ti{background:var(--amber)} .t-amber .ti svg{stroke:#fff}
+.t-blue{background:var(--blue-s)} .t-blue .ti{background:var(--blue)} .t-blue .ti svg{stroke:#fff}
+.t-purple{background:var(--purple-s)} .t-purple .ti{background:var(--purple)} .t-purple .ti svg{stroke:#fff}
+
+/* ---------- stat boxes ---------- */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.stat{background:var(--card);border-radius:var(--r-sm);padding:13px 10px;text-align:center;box-shadow:var(--shadow)}
+.stat .n{font-size:21px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.stat .l{font-size:10.5px;color:var(--muted);font-weight:600;margin-top:5px}
+.stat.g .n{color:var(--green)} .stat.r .n{color:var(--red)} .stat.a .n{color:var(--amber)}
+.stat.b .n{color:var(--blue)} .stat.p .n{color:var(--purple)}
+
+/* ---------- section head ---------- */
+.sh{display:flex;align-items:center;justify-content:space-between;margin:22px 4px 11px}
+.sh h2{font-size:16px;font-weight:800;letter-spacing:-.02em}
+.sh button{font-size:13px;color:var(--acc2);font-weight:700}
+body[data-dark="1"] .sh button{color:#5FC5D6}
+
+/* ---------- cards / rows ---------- */
+.card{background:var(--card);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+.card+.card{margin-top:11px}
+
+.row{background:var(--card);border-radius:var(--r-sm);padding:12px 13px;display:flex;align-items:center;
+  gap:12px;box-shadow:var(--shadow);transition:transform .15s}
+.row:active{transform:scale(.985)}
+.row+.row{margin-top:9px}
+.av{width:42px;height:42px;border-radius:14px;flex:0 0 auto;display:grid;place-items:center;
+  font-weight:800;font-size:14px;color:#fff;letter-spacing:-.02em}
+.ri{flex:1;min-width:0}
+.ri .n{font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.ri .m{font-size:12px;color:var(--muted);margin-top:2px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ri .m .rz{color:var(--red);font-weight:600}
+.pill{flex:0 0 auto;font-size:10.5px;font-weight:800;padding:6px 10px;border-radius:9px;letter-spacing:.02em}
+.pill.presente{background:var(--green-s);color:var(--green)}
+.pill.ausente{background:var(--red-s);color:var(--red)}
+.pill.folga{background:var(--amber-s);color:var(--amber)}
+.pill.ferias{background:var(--blue-s);color:var(--blue)}
+.pill.atestado{background:var(--purple-s);color:var(--purple)}
+.chev{width:18px;height:18px;stroke:var(--muted);stroke-width:2.2;fill:none;flex:0 0 auto;stroke-linecap:round;stroke-linejoin:round;opacity:.55}
+
+/* area card */
+.acard{background:var(--card);border-radius:var(--r);padding:15px;box-shadow:var(--shadow)}
+.acard+.acard{margin-top:11px}
+.acard .ah{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.acard .ah .n{font-weight:800;font-size:16px;letter-spacing:-.02em}
+.acard .ah .r{font-size:12px;color:var(--muted);margin-top:2px;font-weight:500}
+.acard .big{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.acard .big small{display:block;font-size:10px;color:var(--muted);font-weight:600;margin-top:3px}
+.bar{height:8px;border-radius:5px;background:var(--line);margin-top:13px;overflow:hidden;display:flex}
+.bar span{height:100%;background:linear-gradient(90deg,var(--green),#2FC98A);
+  transition:width .7s cubic-bezier(.22,1,.36,1);border-radius:5px}
+.mini{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.mchip{font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:20px;display:flex;align-items:center;gap:6px}
+.mchip i{width:7px;height:7px;border-radius:50%;display:block}
+.mchip.presente{background:var(--green-s);color:var(--green)} .mchip.presente i{background:var(--green)}
+.mchip.ausente{background:var(--red-s);color:var(--red)} .mchip.ausente i{background:var(--red)}
+.mchip.folga{background:var(--amber-s);color:var(--amber)} .mchip.folga i{background:var(--amber)}
+.mchip.ferias{background:var(--blue-s);color:var(--blue)} .mchip.ferias i{background:var(--blue)}
+.mchip.atestado{background:var(--purple-s);color:var(--purple)} .mchip.atestado i{background:var(--purple)}
+
+/* ---------- filters / search ---------- */
+.search{position:relative;margin-bottom:12px}
+.search input{width:100%;padding:14px 14px 14px 44px;border:none;border-radius:var(--r-sm);
+  background:var(--card);color:var(--ink);box-shadow:var(--shadow);font-weight:500}
+.search input:focus{outline:2px solid var(--acc2);outline-offset:0}
+.search svg{position:absolute;left:15px;top:50%;transform:translateY(-50%);width:19px;height:19px;
+  stroke:var(--muted);stroke-width:2.2;fill:none}
+.fscroll{display:flex;gap:8px;overflow-x:auto;padding:2px 4px 12px;margin:0 -4px}
+.fpill{flex:0 0 auto;font-size:13px;font-weight:700;padding:9px 16px;border-radius:20px;
+  background:var(--card);color:var(--ink2);white-space:nowrap;box-shadow:var(--shadow);transition:all .18s}
+.fpill.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;box-shadow:0 6px 16px -6px var(--acc)}
+
+/* ---------- buttons ---------- */
+.btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:15px 18px;
+  border-radius:16px;font-weight:700;font-size:15px;color:#fff;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));box-shadow:0 10px 24px -10px var(--acc);
+  transition:transform .15s}
+.btn:active{transform:scale(.975)}
+.btn.ghost{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.btn.dang{background:linear-gradient(135deg,#C6403D,#E1524F);box-shadow:0 10px 24px -10px #E1524F}
+.btn.sm{padding:10px 15px;font-size:13.5px;width:auto;border-radius:12px}
+.btn svg{width:18px;height:18px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.brow{display:flex;gap:10px;margin-top:11px}
+.brow .btn{flex:1}
+
+/* ---------- bottom nav ---------- */
+.nav{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:560px;margin:0 auto;
+  background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:space-around;
+  padding:9px 6px calc(9px + env(safe-area-inset-bottom));box-shadow:0 -6px 24px -12px rgba(17,28,37,.18)}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);
+  font-size:10px;font-weight:700;padding:4px 8px;flex:1;position:relative;transition:color .2s}
+.nav button.on{color:var(--acc2)}
+body[data-dark="1"] .nav button.on{color:#5FC5D6}
+.nav svg{width:22px;height:22px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.nav button.on svg{transform:translateY(-2px) scale(1.08)}
+.nav button.on::before{content:"";position:absolute;top:-9px;width:26px;height:3px;border-radius:0 0 4px 4px;
+  background:linear-gradient(90deg,var(--acc),var(--acc2))}
+
+/* ---------- FAB ---------- */
+.fab{position:fixed;bottom:88px;z-index:38;right:calc(50% - 280px + 18px)}
+@media(max-width:596px){.fab{right:18px}}
+.fab button{width:58px;height:58px;border-radius:20px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));box-shadow:0 12px 26px -8px var(--acc);
+  transition:transform .18s}
+.fab button:active{transform:scale(.9) rotate(90deg)}
+.fab svg{width:26px;height:26px;stroke:#fff;stroke-width:2.6;fill:none;stroke-linecap:round}
+
+/* ---------- drawer ---------- */
+.scrim{position:fixed;inset:0;background:rgba(8,18,26,.55);z-index:50;opacity:0;pointer-events:none;
+  transition:opacity .25s;backdrop-filter:blur(2px)}
+.scrim.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:84%;max-width:330px;background:var(--card);z-index:60;
+  transform:translateX(100%);transition:transform .3s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.dh{padding:24px 20px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff}
+.dh .n{font-weight:800;font-size:18px;letter-spacing:-.02em}
+.dh .s{font-size:12px;opacity:.85;margin-top:3px;font-weight:500}
+.dl{flex:1;overflow-y:auto;padding:10px}
+.dl button{display:flex;align-items:center;gap:13px;width:100%;text-align:left;padding:14px 13px;
+  border-radius:14px;font-weight:600;font-size:14.5px;color:var(--ink);transition:background .15s}
+.dl button:active{background:var(--line2)}
+.dl button.on{background:var(--acc-soft);color:var(--acc2)}
+body[data-dark="1"] .dl button.on{color:#5FC5D6}
+.dl svg{width:20px;height:20px;stroke:var(--muted);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.dl button.on svg{stroke:var(--acc2)}
+.dsep{height:1px;background:var(--line);margin:9px 13px}
+.dfoot{padding:14px 20px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);font-weight:500}
+
+/* ---------- modal ---------- */
+.mscrim{position:fixed;inset:0;background:rgba(8,18,26,.55);z-index:70;display:flex;align-items:flex-end;
+  justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(2px)}
+.mscrim.open{opacity:1;pointer-events:auto}
+.modal{background:var(--card);width:100%;max-width:560px;border-radius:26px 26px 0 0;max-height:92vh;
+  overflow-y:auto;transform:translateY(40px);transition:transform .3s cubic-bezier(.22,1,.36,1);
+  padding:10px 20px calc(22px + env(safe-area-inset-bottom))}
+.mscrim.open .modal{transform:none}
+.grab{width:40px;height:4px;background:var(--line);border-radius:3px;margin:8px auto 16px}
+.modal h2{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.modal .msub{color:var(--muted);font-size:13px;margin-top:3px;margin-bottom:18px;font-weight:500}
+
+/* ---------- fields ---------- */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:7px}
+.field input,.field select,.field textarea{width:100%;padding:13px 14px;border:1.5px solid var(--line);
+  border-radius:13px;background:var(--bg);color:var(--ink);font-weight:500}
+.field input:focus,.field select:focus{outline:none;border-color:var(--acc2)}
+.field .hint{font-size:11.5px;color:var(--muted);margin-top:6px;font-weight:500}
+
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.sgrid button{padding:15px 6px;border-radius:15px;background:var(--bg);border:2px solid transparent;
+  font-size:12px;font-weight:700;color:var(--ink2);display:flex;flex-direction:column;align-items:center;gap:8px;
+  transition:all .18s}
+.sgrid button i{width:13px;height:13px;border-radius:50%;display:block}
+.sgrid button.sel{border-color:var(--acc2);background:var(--acc-soft);color:var(--acc2)}
+.sgrid button:active{transform:scale(.95)}
+
+/* ---------- toggle ---------- */
+.trow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:5px 0}
+.trow .tt{font-weight:700;font-size:14.5px}
+.trow .td{font-size:12.5px;color:var(--muted);margin-top:2px;font-weight:500}
+.sw{width:52px;height:31px;border-radius:17px;background:var(--line);position:relative;flex:0 0 auto;transition:background .25s}
+.sw.on{background:var(--green)}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:25px;height:25px;border-radius:50%;background:#fff;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1);box-shadow:0 2px 5px rgba(0,0,0,.25)}
+.sw.on::after{transform:translateX(21px)}
+
+/* ---------- themes / dark ---------- */
+.dots{display:flex;gap:11px;flex-wrap:wrap;margin-top:4px}
+.dot{width:38px;height:38px;border-radius:13px;position:relative;transition:transform .18s}
+.dot:active{transform:scale(.88)}
+.dot.on::after{content:"";position:absolute;inset:-4px;border-radius:16px;border:2.5px solid var(--ink)}
+.modes{display:flex;gap:10px;margin-top:14px}
+.modes button{flex:1;padding:13px;border-radius:15px;background:var(--bg);font-weight:700;font-size:13.5px;
+  display:flex;align-items:center;justify-content:center;gap:8px;border:2px solid transparent;transition:all .2s}
+.modes button.on{border-color:var(--acc2);background:var(--acc-soft);color:var(--acc2)}
+.modes svg{width:17px;height:17px;stroke:currentColor;stroke-width:2;fill:none}
+
+/* ---------- timeline ---------- */
+.tl{position:relative;padding-left:26px;margin-top:6px}
+.tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tli{position:relative;padding-bottom:18px}
+.tli::before{content:"";position:absolute;left:-23px;top:4px;width:12px;height:12px;border-radius:50%;
+  background:var(--card);border:3px solid var(--acc2)}
+.tli .d{font-size:12px;font-weight:700;color:var(--acc2)}
+body[data-dark="1"] .tli .d{color:#5FC5D6}
+.tli .x{font-size:13.5px;font-weight:600;margin-top:2px}
+.tli .y{font-size:12px;color:var(--muted);margin-top:2px;font-weight:500}
+
+/* ---------- intro / help ---------- */
+.intro{background:var(--card);border-radius:var(--r);padding:15px;margin-bottom:14px;position:relative;
+  box-shadow:var(--shadow);border-left:4px solid var(--acc2)}
+.intro .ih{display:flex;align-items:center;gap:9px;font-weight:800;font-size:14.5px;padding-right:28px;letter-spacing:-.01em}
+.intro .ih svg{width:18px;height:18px;stroke:var(--acc2);stroke-width:2.2;fill:none;flex:0 0 auto}
+.intro .ib{font-size:13px;color:var(--ink2);line-height:1.6;margin-top:8px;font-weight:500}
+.intro ul{margin:9px 0 0;padding-left:18px}
+.intro li{margin-bottom:6px}
+.intro b{color:var(--ink);font-weight:700}
+.intro .ix{position:absolute;top:11px;right:11px;width:28px;height:28px;border-radius:9px;display:grid;
+  place-items:center;color:var(--muted);font-size:19px;line-height:1}
+.hsec{margin-bottom:11px}
+.hq{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);
+  border-radius:var(--r-sm);padding:15px;width:100%;text-align:left;box-shadow:var(--shadow)}
+.hq .l{display:flex;align-items:center;min-width:0;gap:12px}
+.hq .ico{width:38px;height:38px;border-radius:12px;background:var(--acc-soft);flex:0 0 auto;display:grid;place-items:center}
+.hq .ico svg{width:19px;height:19px;stroke:var(--acc2);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.hq .t{font-weight:700;font-size:14.5px;letter-spacing:-.01em}
+.hq .arw{width:18px;height:18px;stroke:var(--muted);stroke-width:2.4;fill:none;flex:0 0 auto;transition:transform .25s}
+.hsec.open .arw{transform:rotate(90deg)}
+.ha{display:none;padding:14px 15px 4px;font-size:13.5px;color:var(--ink2);line-height:1.65;font-weight:500}
+.hsec.open .ha{display:block;animation:fadeIn .3s}
+.ha ol,.ha ul{margin:9px 0 0;padding-left:20px}
+.ha li{margin-bottom:7px}
+.ha b{color:var(--ink);font-weight:700}
+.tip{background:var(--amber-s);border-radius:12px;padding:12px 13px;margin-top:11px;font-size:12.5px;color:var(--ink2)}
+
+/* ---------- empty ---------- */
+.empty{text-align:center;padding:44px 20px}
+.empty .ec{width:72px;height:72px;border-radius:24px;background:var(--acc-soft);margin:0 auto 16px;display:grid;place-items:center}
+.empty svg{width:32px;height:32px;stroke:var(--acc2);stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.empty p{font-size:14px;color:var(--muted);margin-bottom:18px;font-weight:500}
+
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);z-index:90;
+  pointer-events:none;background:var(--ink);color:var(--bg);padding:13px 20px;border-radius:15px;
+  font-size:13.5px;font-weight:700;opacity:0;transition:all .28s;max-width:88%;text-align:center;
+  box-shadow:var(--shadow-lg)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.lrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 2px;
+  border-bottom:1px solid var(--line2)}
+.lrow:last-child{border-bottom:none}
+.lrow .n{font-weight:700;font-size:14.5px} .lrow .m{font-size:12px;color:var(--muted);margin-top:1px;font-weight:500}
+.ib2{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;background:var(--bg)}
+.ib2:active{transform:scale(.9)}
+.ib2 svg{width:17px;height:17px;stroke:var(--muted);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ib2.del svg{stroke:var(--red)}
+
+.tagchip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:7px 12px;
+  border-radius:20px;background:var(--bg);color:var(--ink2)}
+
+/* ---------- license ---------- */
+.lockwrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 22px;
+  background:linear-gradient(160deg,var(--acc),var(--acc2))}
+.lockbox{background:var(--card);border-radius:26px;padding:28px 22px;width:100%;max-width:400px;
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.5);animation:pop .45s cubic-bezier(.22,1,.36,1)}
+.lockbox .li{width:64px;height:64px;border-radius:22px;background:var(--red-s);margin:0 auto 18px;display:grid;place-items:center}
+.lockbox .li svg{width:30px;height:30px;stroke:var(--red);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.lockbox h2{font-size:21px;font-weight:800;text-align:center;letter-spacing:-.02em}
+.lockbox p{font-size:13.5px;color:var(--muted);text-align:center;margin-top:9px;line-height:1.6;font-weight:500}
+.lockbox .codein{width:100%;padding:15px;border:2px solid var(--line);border-radius:15px;background:var(--bg);
+  color:var(--ink);text-align:center;font-size:19px;font-weight:800;letter-spacing:.14em;margin-top:20px}
+.lockbox .codein:focus{outline:none;border-color:var(--acc2)}
+.trialbar{background:var(--amber-s);border-radius:15px;padding:12px 14px;margin-bottom:14px;display:flex;
+  align-items:center;gap:11px;font-size:13px;font-weight:600;color:var(--ink2)}
+.trialbar svg{width:19px;height:19px;stroke:var(--amber);stroke-width:2.2;fill:none;flex:0 0 auto}
+.codebox{background:var(--bg);border-radius:15px;padding:18px;text-align:center;margin-top:6px}
+.codebox .c{font-size:25px;font-weight:800;letter-spacing:.14em;color:var(--acc2);font-variant-numeric:tabular-nums}
+body[data-dark="1"] .codebox .c{color:#5FC5D6}
+.codebox .cl{font-size:11.5px;color:var(--muted);margin-top:7px;font-weight:600}
+
+@media print{body *{visibility:hidden}#pa,#pa *{visibility:visible}#pa{position:absolute;left:0;top:0;width:100%}}
+#pa{display:none}
+
+/* ---------- install prompt ---------- */
+.insc{position:fixed;inset:0;z-index:80;background:rgba(8,18,26,.55);backdrop-filter:blur(3px);
+  display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.insc.open{opacity:1;pointer-events:auto}
+.ins{background:var(--card);width:100%;max-width:560px;border-radius:28px 28px 0 0;padding:8px 20px calc(24px + env(safe-area-inset-bottom));
+  transform:translateY(100%);transition:transform .38s cubic-bezier(.22,1,.36,1);max-height:92vh;overflow-y:auto}
+.insc.open .ins{transform:none}
+.ins .grab{width:40px;height:4px;background:var(--line);border-radius:3px;margin:8px auto 20px}
+.ins .ph{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.ins .picon{width:58px;height:58px;border-radius:19px;flex:0 0 auto;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-weight:800;font-size:24px;
+  box-shadow:0 10px 22px -8px var(--acc)}
+.ins h2{font-size:20px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.ins .psub{font-size:13px;color:var(--muted);font-weight:500;margin-top:3px}
+.ins .pbody{font-size:13.5px;color:var(--ink2);line-height:1.6;font-weight:500;margin-bottom:16px}
+.ins .perks{display:flex;gap:9px;margin-bottom:18px;flex-wrap:wrap}
+.ins .perk{flex:1;min-width:96px;background:var(--bg);border-radius:14px;padding:12px 10px;text-align:center}
+.ins .perk svg{width:20px;height:20px;stroke:var(--acc2);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ins .perk .t{font-size:11.5px;font-weight:700;margin-top:7px;color:var(--ink)}
+.steps{counter-reset:s}
+.step{display:flex;gap:13px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line2)}
+.step:last-child{border-bottom:none}
+.step .sn{width:28px;height:28px;border-radius:10px;background:var(--acc-soft);color:var(--acc2);
+  flex:0 0 auto;display:grid;place-items:center;font-weight:800;font-size:13px}
+.step .sx{flex:1;font-size:13.5px;line-height:1.55;font-weight:500;color:var(--ink2)}
+.step .sx b{color:var(--ink);font-weight:700}
+.btnkey{display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--line);
+  border-radius:8px;padding:3px 8px;font-weight:700;font-size:12.5px;color:var(--ink);vertical-align:middle;margin:0 2px}
+.btnkey svg{width:14px;height:14px;stroke:var(--ink);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ins .later{display:flex;gap:12px;justify-content:space-between;margin-top:16px;align-items:center}
+.ins .later button{font-size:13px;font-weight:600;color:var(--muted);padding:8px 4px}
+.ins .later button.n{color:var(--acc2);font-weight:700}
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="dh"><div class="n" id="drN">Controle de Efetivo</div><div class="s">Menu</div></div>
+  <div class="dl" id="drL"></div>
+  <div class="dfoot" id="drF">Dados salvos neste aparelho</div>
+</div>
+
+<div class="mscrim" id="ms" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="md"><div class="grab"></div><div id="mb"></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="insc" id="insc" onclick="if(event.target===this)closeInstall()">
+  <div class="ins" id="ins"><div class="grab"></div><div id="insBody"></div></div>
+</div>
+<div id="pa"></div>
+
+<script>
+/* ============================================================
+   CONFIG_DONO — ajuste aqui antes de enviar para o testador
+   ============================================================ */
+const CONFIG_DONO = {
+  SENHA_DONO: 'dono2026',   // senha do painel do dono (troque!)
+  SEGREDO:    'vk-efx-9134', // usada para gerar os códigos de liberação (troque!)
+  DIAS_TESTE: 15             // duração do teste na primeira abertura
+};
+/* Painel do dono: toque 5x seguidas no logo (quadrado com a letra) */
+
+/* ================= state ================= */
+const KEY='efetivo_app_v2';
+const SITS=[
+  {k:'presente',label:'Presente',c:'var(--green)'},
+  {k:'ausente', label:'Ausente', c:'var(--red)'},
+  {k:'folga',   label:'Folga',   c:'var(--amber)'},
+  {k:'ferias',  label:'Férias',  c:'var(--blue)'},
+  {k:'atestado',label:'Atestado',c:'var(--purple)'}
+];
+const sitOf=k=>SITS.find(s=>s.k===k)||SITS[0];
+const FUNCOES_PADRAO=['Mecânico Montador','Montador','Ajudante','Encarregado de Mecânica',
+ 'Encarregado de Montagem','Encarregado de Solda','Caldeireiro','Soldador','Lixador',
+ 'Encarregado de Andaime','Montador de Andaime'];
+const TEMAS=[
+  {k:'petroleo',n:'Petróleo',a:'#0E3A4F',b:'#1B7A8C',s:'#E6F0F3'},
+  {k:'roxo',    n:'Roxo',    a:'#5B3FD6',b:'#8B6DF0',s:'#EFEBFC'},
+  {k:'azul',    n:'Azul',    a:'#1D4ED8',b:'#3B82F6',s:'#E8F0FE'},
+  {k:'verde',   n:'Verde',   a:'#0B6B57',b:'#14A87C',s:'#E4F5EF'},
+  {k:'ambar',   n:'Âmbar',   a:'#B45309',b:'#E0951B',s:'#FCF2E0'},
+  {k:'grafite', n:'Grafite', a:'#1F2937',b:'#4B5563',s:'#ECEEF1'}
+];
+const AVCOLORS=['#0E3A4F','#1B7A8C','#5B3FD6','#1D4ED8','#0B6B57','#B45309','#7A5AC8','#C6403D'];
+
+let state=load();
+function load(){
+  try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.config)return migrate(s);}catch(e){}
+  return {config:{empresa:'',setupDone:false,tema:'petroleo',dark:false,hidden:{},driveBackup:false},
+    licenca:null, funcoes:[...FUNCOES_PADRAO], areas:[], trabalhadores:[], efetivos:{}};
+}
+function migrate(s){
+  s.config.hidden=s.config.hidden||{};
+  s.config.tema=s.config.tema||'petroleo';
+  if(s.config.dark===undefined)s.config.dark=false;
+  s.licenca=s.licenca||null;
+  return s;
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){toast('Erro ao salvar')}}
+
+/* ================= helpers ================= */
+const $=s=>document.querySelector(s);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ini=n=>(n||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';
+function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function fmtD(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return`${d}/${m}/${y}`}
+function fmtLong(iso){const[y,m,d]=iso.split('-');const dt=new Date(y,m-1,d);
+  const dd=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  return`${dd[dt.getDay()]}, ${d}/${m}/${y}`}
+function daysBetween(a,b){return Math.round((new Date(b+'T00:00')-new Date(a+'T00:00'))/86400000)}
+function addDays(iso,n){const d=new Date(iso+'T00:00');d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function areaName(id){const a=state.areas.find(a=>a.id===id);return a?a.nome:'Sem área'}
+function avColor(s){let h=0;for(let i=0;i<(s||'').length;i++)h=(h*31+s.charCodeAt(i))>>>0;return AVCOLORS[h%AVCOLORS.length]}
+let tT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');
+  clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),2300)}
+
+/* ================= licença ================= */
+function hashStr(s){let h=5381;for(let i=0;i<s.length;i++){h=(((h<<5)+h)^s.charCodeAt(i))>>>0}return h}
+function genCode(iso){
+  const d=iso.replace(/-/g,'');
+  const c=(hashStr(CONFIG_DONO.SEGREDO+d)%1000000).toString().padStart(6,'0');
+  return d.slice(6,8)+d.slice(4,6)+d.slice(2,4)+'-'+c;
+}
+function parseCode(code){
+  const m=(code||'').trim().toUpperCase().replace(/\s/g,'').match(/^(\d{2})(\d{2})(\d{2})-?(\d{6})$/);
+  if(!m)return null;
+  const iso=`20${m[3]}-${m[2]}-${m[1]}`;
+  return genCode(iso)===`${m[1]}${m[2]}${m[3]}-${m[4]}` ? iso : null;
+}
+function initLicenca(){
+  if(!state.licenca){
+    state.licenca={tipo:'teste',inicio:todayISO(),expira:addDays(todayISO(),CONFIG_DONO.DIAS_TESTE)};
+    save();
+  }
+}
+function licStatus(){
+  const l=state.licenca;
+  if(!l||l.tipo==='full')return{ok:true,full:true};
+  const rest=daysBetween(todayISO(),l.expira);
+  return{ok:rest>=0,full:false,rest,expira:l.expira};
+}
+
+/* ================= router ================= */
+let cur='inicio',selDate=todayISO(),histDate=todayISO(),repMonth=todayISO().slice(0,7);
+let efArea='all',efQ='',pplQ='',pplArea='all',repTab='geral',repWorker='';
+const NAV=[
+  {k:'inicio',   l:'Início',   i:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>'},
+  {k:'efetivo',  l:'Efetivo',  i:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>'},
+  {k:'pessoas',  l:'Pessoas',  i:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.2 3-5 6-5s6 1.8 6 5"/><path d="M16.5 6.2a3.2 3.2 0 0 1 0 6M21 20c0-2.6-2-4.4-4.2-4.9"/>'},
+  {k:'historico',l:'Histórico',i:'<rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/>'},
+  {k:'ajustes',  l:'Ajustes',  i:'<circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1v.3a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-2.8-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 4.5 13H4a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.1-2.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 11 4.5V4a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.8h.3a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.3.9z"/>'}
+];
+const MENU=[
+  {k:'inicio',l:'Início'},{k:'efetivo',l:'Efetivo de Hoje'},{k:'pessoas',l:'Trabalhadores'},
+  {k:'areas',l:'Áreas / Equipes'},{k:'historico',l:'Histórico'},{k:'relatorios',l:'Relatórios'},
+  {k:'ajustes',l:'Ajustes'},{k:'ajuda',l:'Como usar'}
+];
+function go(v){cur=v;closeDrawer();render();window.scrollTo(0,0)}
+
+/* ================= efetivo core ================= */
+function lastBefore(iso){const d=Object.keys(state.efetivos).filter(x=>x<iso).sort();return d.length?d[d.length-1]:null}
+function snap(id,sit){const t=state.trabalhadores.find(x=>x.id===id)||{};
+  return{trabalhadorId:id,matricula:t.matricula||'',nome:t.nome||'',funcao:t.funcao||'',
+    areaId:t.areaId||null,responsavel:t.responsavel||'',situacao:sit||'presente',motivo:''}}
+function buildFromLast(iso){
+  const p=lastBefore(iso),regs=[];
+  if(p){state.efetivos[p].registros.forEach(r=>{
+    const w=state.trabalhadores.find(t=>t.id===r.trabalhadorId);
+    if(w&&w.situacaoCadastral==='Desligado')return;
+    regs.push(snap(r.trabalhadorId,'presente'));})}
+  state.efetivos[iso]={data:iso,registros:regs};save();return state.efetivos[iso]
+}
+function startFresh(iso){
+  const regs=state.trabalhadores.filter(t=>t.situacaoCadastral!=='Desligado')
+    .map(t=>snap(t.id,t.situacaoCadastral==='Férias'?'ferias':'presente'));
+  state.efetivos[iso]={data:iso,registros:regs};save()
+}
+function totals(rs){const t={total:rs.length,presente:0,ausente:0,folga:0,ferias:0,atestado:0};
+  rs.forEach(r=>t[r.situacao]=(t[r.situacao]||0)+1);t.ausentes=t.total-t.presente;return t}
+function areaTotals(rs){const m={};
+  rs.forEach(r=>{const id=r.areaId||'__n';(m[id]=m[id]||{areaId:r.areaId,rs:[]}).rs.push(r)});
+  return Object.values(m).map(g=>({areaId:g.areaId,name:areaName(g.areaId),t:totals(g.rs)}))
+    .sort((a,b)=>b.t.total-a.t.total)}
+
+/* ================= theme ================= */
+function applyTheme(){
+  const t=TEMAS.find(x=>x.k===state.config.tema)||TEMAS[0];
+  const r=document.documentElement.style;
+  r.setProperty('--acc',t.a);r.setProperty('--acc2',t.b);
+  if(!state.config.dark)r.setProperty('--acc-soft',t.s);else r.removeProperty('--acc-soft');
+  document.body.dataset.dark=state.config.dark?'1':'0';
+  const mt=document.querySelector('meta[name=theme-color]');if(mt)mt.content=t.a;
+}
+
+/* ================= render ================= */
+function render(){
+  applyTheme();
+  initLicenca();
+  const L=licStatus();
+  if(!L.ok){return renderLock()}
+  if(!state.config.setupDone){return renderSetup()}
+
+  const nav=NAV.map(n=>`<button class="${cur===n.k?'on':''}" onclick="go('${n.k}')">
+    <svg viewBox="0 0 24 24">${n.i}</svg>${n.l}</button>`).join('');
+  const cn=MENU.find(m=>m.k===cur);
+  let body='',fab='';
+  if(cur==='inicio')body=vInicio();
+  else if(cur==='efetivo')body=vEfetivo();
+  else if(cur==='pessoas'){body=vPessoas();fab='pessoa'}
+  else if(cur==='areas'){body=vAreas();fab='area'}
+  else if(cur==='historico')body=vHistorico();
+  else if(cur==='relatorios')body=vRelatorios();
+  else if(cur==='ajustes')body=vAjustes();
+  else if(cur==='ajuda')body=vAjuda();
+
+  $('#root').innerHTML=`
+    <div class="app">
+      <div class="top">
+        <div class="tl">
+          <div class="mark" onclick="tapLogo()">${esc((state.config.empresa||'E').trim().charAt(0).toUpperCase()||'E')}</div>
+          <div class="tt"><h1>${esc(state.config.empresa||'Controle de Efetivo')}</h1>
+            <p>${esc(cn?cn.l:'')}</p></div>
+        </div>
+        <button class="iconcircle" onclick="openDrawer()"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      </div>
+      <div class="main">${trialBanner()}${body}</div>
+      <div class="nav">${nav}</div>
+      ${fab?`<div class="fab"><button onclick="${fab==='pessoa'?'openWorker()':'openArea()'}"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>`:''}
+    </div>`;
+  stagger();
+}
+function stagger(){
+  document.querySelectorAll('.main .an,.main .an-pop').forEach((el,i)=>el.style.setProperty('--i',i));
+  requestAnimationFrame(()=>document.querySelectorAll('.bar span[data-w]').forEach(s=>s.style.width=s.dataset.w+'%'));
+}
+function trialBanner(){
+  const L=licStatus();
+  if(L.full||L.rest>7)return'';
+  return `<div class="trialbar an"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    <div>Versão de teste — ${L.rest===0?'último dia':L.rest+' dia'+(L.rest>1?'s':'')+' restante'+(L.rest>1?'s':'')}.
+    <br><span style="font-weight:500;color:var(--muted)">Fale com o responsável para liberar.</span></div></div>`;
+}
+
+/* ---------- lock screen ---------- */
+function renderLock(){
+  document.body.dataset.dark='0';
+  $('#root').innerHTML=`<div class="lockwrap"><div class="lockbox">
+    <div class="li"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+    <h2>Período de teste encerrado</h2>
+    <p>Seus dados estão salvos e intactos.<br>Peça o código de liberação ao responsável pelo sistema.</p>
+    <input class="codein" id="lkCode" placeholder="000000-000000" inputmode="numeric" autocomplete="off">
+    <div style="margin-top:16px"><button class="btn" onclick="tryUnlock()">Liberar acesso</button></div>
+    <div style="margin-top:11px"><button class="btn ghost" onclick="doExport()">Baixar meus dados</button></div>
+    <p style="margin-top:18px;font-size:12px" onclick="ownerFromLock()">Sistema de Controle de Efetivo</p>
+  </div></div>`;
+}
+function tryUnlock(){
+  const iso=parseCode($('#lkCode').value);
+  if(!iso){toast('Código inválido');return}
+  state.licenca={tipo:'teste',inicio:todayISO(),expira:iso};save();
+  toast('Liberado até '+fmtD(iso));cur='inicio';render();
+}
+let lockTaps=0,lockT;
+function ownerFromLock(){lockTaps++;clearTimeout(lockT);lockT=setTimeout(()=>lockTaps=0,1600);
+  if(lockTaps>=5){lockTaps=0;askOwner(true)}}
+
+/* ---------- owner panel ---------- */
+let logoTaps=0,logoT;
+function tapLogo(){logoTaps++;clearTimeout(logoT);logoT=setTimeout(()=>logoTaps=0,1600);
+  if(logoTaps>=5){logoTaps=0;askOwner(false)}}
+function askOwner(fromLock){
+  const p=prompt('Senha do responsável:');
+  if(p===null)return;
+  if(p!==CONFIG_DONO.SENHA_DONO){toast('Senha incorreta');return}
+  ownerPanel(fromLock);
+}
+function ownerPanel(fromLock){
+  const L=state.licenca||{};
+  const st=licStatus();
+  $('#mb').innerHTML=`
+    <h2>Painel do responsável</h2>
+    <div class="msub">Controle de licença deste aparelho</div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="lrow"><div><div class="n">${L.tipo==='full'?'Liberado (sem prazo)':'Versão de teste'}</div>
+        <div class="m">${L.tipo==='full'?'Acesso permanente':'Expira em '+fmtD(L.expira)+(st.ok?` · ${st.rest} dia(s)`:' · vencido')}</div></div></div>
+    </div>
+    <div class="field"><label>Estender teste até</label>
+      <input type="date" id="opDate" value="${L.expira||addDays(todayISO(),15)}"></div>
+    <div class="brow" style="margin-top:0">
+      <button class="btn" onclick="opExtend()">Aplicar aqui</button>
+      <button class="btn ghost" onclick="opGen()">Gerar código</button>
+    </div>
+    <div id="opCode"></div>
+    <div class="sh"><h2 style="font-size:14px">Atalhos</h2></div>
+    <div class="brow" style="margin-top:0">
+      <button class="btn ghost sm" style="flex:1" onclick="opQuick(7)">+7 dias</button>
+      <button class="btn ghost sm" style="flex:1" onclick="opQuick(15)">+15 dias</button>
+      <button class="btn ghost sm" style="flex:1" onclick="opQuick(30)">+30 dias</button>
+    </div>
+    <div style="margin-top:14px"><button class="btn" onclick="opFull()">Liberar definitivo (sem prazo)</button></div>
+    <div style="margin-top:10px"><button class="btn ghost dang" style="background:var(--red-s);color:var(--red);box-shadow:none" onclick="opLockNow()">Bloquear agora</button></div>
+    <div style="height:8px"></div>`;
+  openModal();
+}
+function opExtend(){const d=$('#opDate').value;if(!d)return;
+  state.licenca={tipo:'teste',inicio:todayISO(),expira:d};save();closeModal();cur='inicio';render();toast('Liberado até '+fmtD(d))}
+function opQuick(n){const base=licStatus().ok&&state.licenca.expira>todayISO()?state.licenca.expira:todayISO();
+  const d=addDays(base,n);state.licenca={tipo:'teste',inicio:todayISO(),expira:d};save();closeModal();cur='inicio';render();toast('+'+n+' dias · até '+fmtD(d))}
+function opFull(){if(!confirm('Liberar definitivo, sem prazo?'))return;
+  state.licenca={tipo:'full',inicio:todayISO()};save();closeModal();cur='inicio';render();toast('Acesso liberado sem prazo')}
+function opLockNow(){if(!confirm('Bloquear o sistema agora?'))return;
+  state.licenca={tipo:'teste',inicio:todayISO(),expira:addDays(todayISO(),-1)};save();closeModal();render()}
+function opGen(){const d=$('#opDate').value;if(!d)return;
+  $('#opCode').innerHTML=`<div class="codebox"><div class="c">${genCode(d)}</div>
+    <div class="cl">Código válido até ${fmtD(d)} · mande por WhatsApp</div></div>`}
+
+/* ---------- setup ---------- */
+function renderSetup(){
+  $('#root').innerHTML=`<div class="app"><div class="main" style="padding-top:34px;padding-bottom:40px">
+    <div class="hero an"><div class="hl">Bem-vindo ao</div>
+      <div class="hbig"><div class="n" style="font-size:30px">Controle de Efetivo</div></div>
+      <div style="font-size:13px;opacity:.88;margin-top:10px;line-height:1.6">
+        Cadastre uma vez, marque a presença todo dia e tenha os totais prontos — sem conta na mão.</div>
+    </div>
+    <div class="tiles an">
+      <div class="tile t-green" style="cursor:default"><div class="ti"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <div class="tn">Totais sozinhos</div><div class="td">Geral e por área</div></div>
+      <div class="tile t-blue" style="cursor:default"><div class="ti"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 9h16"/></svg></div>
+        <div class="tn">Histórico</div><div class="td">Todos os dias</div></div>
+      <div class="tile t-amber" style="cursor:default"><div class="ti"><svg viewBox="0 0 24 24"><path d="M7 8V3h10v5M7 17h10v4H7z"/><rect x="4" y="8" width="16" height="9" rx="1.5"/></svg></div>
+        <div class="tn">PDF pronto</div><div class="td">Imprimir ou enviar</div></div>
+      <div class="tile t-purple" style="cursor:default"><div class="ti"><svg viewBox="0 0 24 24"><path d="M5 12.5 9 8M5 12.5 9 17M19 12.5h-14"/></svg></div>
+        <div class="tn">Sem internet</div><div class="td">E sem custo</div></div>
+    </div>
+    <div class="card an" style="margin-top:16px">
+      <div class="field"><label>Nome do local / empresa</label>
+        <input id="suE" placeholder="Ex: Metalúrgica São Jorge"><div class="hint">Aparece no topo e no PDF.</div></div>
+      <div class="field"><label>Primeira área / equipe (opcional)</label>
+        <input id="suA" placeholder="Ex: Pátio 2"></div>
+      <div class="field" style="margin-bottom:0"><label>Encarregado dessa área (opcional)</label>
+        <input id="suR" placeholder="Ex: João"></div>
+    </div>
+    <div class="an" style="margin-top:16px"><button class="btn" onclick="finishSetup()">Começar a usar</button></div>
+  </div></div>`;
+  stagger();
+}
+function finishSetup(){
+  state.config.empresa=$('#suE').value.trim();
+  const a=$('#suA').value.trim();
+  if(a)state.areas.push({id:uid(),nome:a,responsavel:$('#suR').value.trim()});
+  state.config.setupDone=true;save();setupManifest();toast('Tudo pronto!');go('inicio');
+}
+
+/* ---------- intro cards ---------- */
+const IC='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>';
+function intro(k,t,b){
+  if(state.config.hidden[k])return'';
+  return `<div class="intro an"><button class="ix" onclick="hideIntro('${k}')">×</button>
+    <div class="ih">${IC}${esc(t)}</div><div class="ib">${b}</div></div>`;
+}
+function hideIntro(k){state.config.hidden[k]=true;save();render();toast('Ocultado · volta em "Como usar"')}
+function showIntros(){state.config.hidden={};save();render();toast('Explicações reativadas')}
+function togHelp(el){el.closest('.hsec').classList.toggle('open')}
+
+/* ---------- INÍCIO ---------- */
+function vInicio(){
+  const iso=todayISO(),ef=state.efetivos[iso];
+  const i=intro('inicio','O que é esta tela',
+    `É o resumo do dia. <ul><li>O cartão grande mostra o <b>total geral</b> e quantos vieram/faltaram</li>
+     <li>Os quatro blocos coloridos são <b>atalhos</b> pras ações do dia a dia</li>
+     <li>Embaixo, os números <b>separados por área</b></li></ul>
+     Aqui você só consulta. Pra mudar alguma coisa, vá em <b>Efetivo</b>.`);
+  if(!ef){
+    return i+`<div class="empty an"><div class="ec"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></div>
+      <p>Nenhum efetivo lançado hoje.<br>Comece pela tela de Efetivo.</p>
+      <button class="btn" onclick="go('efetivo')">Lançar efetivo de hoje</button></div>`;
+  }
+  const t=totals(ef.registros),ar=areaTotals(ef.registros);
+  return i+`
+    <div class="hero an">
+      <div class="hdate">${fmtD(iso)}</div>
+      <div class="hl">Efetivo de hoje</div>
+      <div class="hbig"><div class="n">${t.total}</div><div class="u">trabalhadores</div></div>
+      <div class="hsplit">
+        <div><div class="n">${t.presente}</div><div class="l">Presentes</div></div>
+        <div><div class="n">${t.ausentes}</div><div class="l">Ausentes</div></div>
+        <div><div class="n">${ar.length}</div><div class="l">Áreas</div></div>
+      </div>
+    </div>
+    <div class="tiles">
+      <button class="tile t-green an" onclick="go('efetivo')"><div class="ti"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <div class="tn">Marcar presença</div><div class="td">Conferir o dia</div></button>
+      <button class="tile t-blue an" onclick="go('historico')"><div class="ti"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 9h16M9 2v4M15 2v4"/></svg></div>
+        <div class="tn">Histórico</div><div class="td">Dias anteriores</div></button>
+      <button class="tile t-amber an" onclick="printEf('${iso}')"><div class="ti"><svg viewBox="0 0 24 24"><path d="M7 8V3h10v5M7 17h10v4H7z"/><rect x="4" y="8" width="16" height="9" rx="1.5"/></svg></div>
+        <div class="tn">Gerar PDF</div><div class="td">Relatório do dia</div></button>
+      <button class="tile t-purple an" onclick="go('relatorios')"><div class="ti"><svg viewBox="0 0 24 24"><path d="M6 20V10M12 20V4M18 20v-7"/></svg></div>
+        <div class="tn">Relatórios</div><div class="td">Fechar o mês</div></button>
+    </div>
+    <div class="stats">
+      ${SITS.map(s=>`<div class="stat an"><div class="n" style="color:${s.c}">${t[s.k]||0}</div><div class="l">${s.label}</div></div>`).join('')}
+    </div>
+    <div class="sh"><h2>Por área</h2><span style="font-size:12.5px;color:var(--muted);font-weight:600">${ar.length}</span></div>
+    ${ar.map(a=>aCard(a)).join('')||`<div class="card an"><div style="color:var(--muted);font-size:13px">Sem áreas no efetivo de hoje.</div></div>`}`;
+}
+function aCard(a){
+  const pct=a.t.total?Math.round(a.t.presente/a.t.total*100):0;
+  const r=state.areas.find(x=>x.id===a.areaId);
+  return `<div class="acard an"><div class="ah">
+      <div><div class="n">${esc(a.name)}</div>${r&&r.responsavel?`<div class="r">Encarregado · ${esc(r.responsavel)}</div>`:''}</div>
+      <div style="text-align:right"><div class="big">${a.t.total}<small>EFETIVO</small></div></div></div>
+    <div class="bar"><span data-w="${pct}" style="width:0"></span></div>
+    <div class="mini"><span class="mchip presente"><i></i>${a.t.presente} presentes</span>
+      <span class="mchip ausente"><i></i>${a.t.ausentes} ausentes</span></div></div>`;
+}
+
+/* ---------- EFETIVO ---------- */
+function vEfetivo(){
+  const iso=selDate,ef=state.efetivos[iso];
+  const db=`<div class="card an" style="padding:12px 14px;display:flex;align-items:center;gap:11px;margin-bottom:13px">
+    <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--acc2);stroke-width:2;fill:none;flex:0 0 auto"><rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
+    <input type="date" value="${iso}" onchange="selDate=this.value;render()" style="border:none;background:none;flex:1;font-weight:700;color:var(--ink)"></div>`;
+  if(!ef){
+    const p=lastBefore(iso);
+    const i=intro('ef_vazio','Começando o dia',
+      `Escolha como montar a lista de hoje:
+       <ul><li><b>Carregar do último dia</b>: repete a lista do dia anterior com todos presentes. Você só muda quem faltou. É o mais rápido</li>
+       <li><b>Começar com todos os ativos</b>: usa todo mundo cadastrado como Ativo</li></ul>
+       Isso não mexe nos dias anteriores.`);
+    return `${db}${i}<div class="empty an"><div class="ec"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></div>
+      <p>Nada lançado em ${fmtD(iso)}.</p>
+      ${p?`<button class="btn" onclick="carregarUlt('${iso}')">Carregar de ${fmtD(p)}</button><div style="height:10px"></div>`:''}
+      <button class="btn ghost" onclick="startFresh('${iso}');render();toast('Efetivo iniciado')">Começar com todos os ativos</button></div>`;
+  }
+  const t=totals(ef.registros);
+  const ids=[...new Set(ef.registros.map(r=>r.areaId))];
+  let rs=ef.registros.slice();
+  if(efArea!=='all')rs=rs.filter(r=>(r.areaId||'__n')===efArea);
+  if(efQ){const q=efQ.toLowerCase();rs=rs.filter(r=>(r.nome||'').toLowerCase().includes(q)||String(r.matricula||'').includes(q))}
+  const i=intro('efetivo','Como marcar',
+    `<ul><li><b>Toque no nome</b> pra escolher: Presente, Ausente, Folga, Férias ou Atestado</li>
+     <li>Marcando Ausente, aparece o campo de <b>motivo</b> — opcional</li>
+     <li>Os números mudam <b>na hora</b></li>
+     <li><b>Não existe botão de salvar.</b> Tudo é gravado ao tocar</li></ul>`);
+  return `${db}${i}
+    <div class="hero an">
+      <div class="hdate">${fmtD(iso)}</div>
+      <div class="hl">${efArea==='all'?'Todas as áreas':esc(efArea==='__n'?'Sem área':areaName(efArea))}</div>
+      <div class="hbig"><div class="n">${t.presente}</div><div class="u">de ${t.total} presentes</div></div>
+      <div class="hsplit">
+        <div><div class="n">${t.ausente}</div><div class="l">Faltas</div></div>
+        <div><div class="n">${t.folga}</div><div class="l">Folgas</div></div>
+        <div><div class="n">${t.ferias+t.atestado}</div><div class="l">Fér./Atest.</div></div>
+      </div>
+    </div>
+    <div class="sh"><h2>Trabalhadores</h2><span style="font-size:12.5px;color:var(--muted);font-weight:600">${rs.length}</span></div>
+    <div class="search an"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 17 17"/></svg>
+      <input placeholder="Buscar por nome ou matrícula" value="${esc(efQ)}" oninput="efQ=this.value;render()"></div>
+    ${ids.length>1?`<div class="fscroll an">
+      <button class="fpill ${efArea==='all'?'on':''}" onclick="efArea='all';render()">Todas</button>
+      ${ids.map(id=>`<button class="fpill ${efArea===(id||'__n')?'on':''}" onclick="efArea='${id||'__n'}';render()">${esc(id?areaName(id):'Sem área')}</button>`).join('')}</div>`:''}
+    ${rs.length?rs.map(r=>efRow(iso,r)).join(''):`<div class="empty an"><p>Ninguém encontrado.</p></div>`}
+    <div style="height:14px"></div>
+    <button class="btn ghost an" onclick="openAdd('${iso}')"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Adicionar alguém ao dia</button>
+    <div style="height:10px"></div>
+    <button class="btn an" onclick="printEf('${iso}')"><svg viewBox="0 0 24 24"><path d="M7 8V3h10v5M7 17h10v4H7z"/><rect x="4" y="8" width="16" height="9" rx="1.5"/></svg>Gerar PDF</button>`;
+}
+function efRow(iso,r){
+  const s=sitOf(r.situacao);
+  let m=`${esc(r.funcao||'—')}${r.responsavel?' · '+esc(r.responsavel):''}`;
+  if(r.situacao==='ausente'&&r.motivo)m=`<span class="rz">Ausente · ${esc(r.motivo)}</span>`;
+  return `<div class="row an" onclick="openMark('${iso}','${r.trabalhadorId}')">
+    <div class="av" style="background:${avColor(r.nome)}">${ini(r.nome)}</div>
+    <div class="ri"><div class="n">${esc(r.nome)}</div><div class="m">${m}</div></div>
+    <span class="pill ${s.k}">${s.label}</span>
+    <svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>`;
+}
+function carregarUlt(iso){buildFromLast(iso);render();toast('Efetivo carregado')}
+let mkCtx=null,mkSit=null;
+function openMark(iso,id){
+  const r=state.efetivos[iso].registros.find(x=>x.trabalhadorId===id);if(!r)return;
+  mkCtx={iso,id};mkSit=r.situacao;
+  $('#mb').innerHTML=`
+    <div style="display:flex;align-items:center;gap:13px;margin-bottom:18px">
+      <div class="av" style="width:52px;height:52px;border-radius:17px;font-size:17px;background:${avColor(r.nome)}">${ini(r.nome)}</div>
+      <div style="min-width:0"><h2 style="font-size:19px">${esc(r.nome)}</h2>
+        <div style="font-size:12.5px;color:var(--muted);font-weight:500;margin-top:2px">${r.matricula?'Mat. '+esc(r.matricula)+' · ':''}${esc(r.funcao||'')} · ${esc(areaName(r.areaId))}</div></div>
+    </div>
+    <div class="field"><label>Situação do dia</label>
+      <div class="sgrid" id="mkG">${SITS.map(s=>`<button class="${r.situacao===s.k?'sel':''}" data-s="${s.k}" onclick="pickSit('${s.k}')">
+        <i style="background:${s.c}"></i>${s.label}</button>`).join('')}</div></div>
+    <div class="field" id="mvW" style="${r.situacao==='ausente'?'':'display:none'}">
+      <label>Motivo da ausência (opcional)</label>
+      <input id="mkM" placeholder="Ex: consulta médica" value="${esc(r.motivo||'')}">
+      <div class="hint">Preencha só quando souber.</div></div>
+    <button class="btn" onclick="saveMark()">Salvar</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" style="color:var(--red)" onclick="rmFromDay()">Remover deste dia</button>
+    <div style="height:6px"></div>`;
+  openModal();
+}
+function pickSit(k){mkSit=k;
+  document.querySelectorAll('#mkG button').forEach(b=>b.classList.toggle('sel',b.dataset.s===k));
+  $('#mvW').style.display=k==='ausente'?'':'none'}
+function saveMark(){
+  const r=state.efetivos[mkCtx.iso].registros.find(x=>x.trabalhadorId===mkCtx.id);
+  r.situacao=mkSit||r.situacao;
+  r.motivo=r.situacao==='ausente'?($('#mkM')?$('#mkM').value.trim():''):'';
+  save();closeModal();render();toast('Atualizado')}
+function rmFromDay(){
+  const ef=state.efetivos[mkCtx.iso];
+  ef.registros=ef.registros.filter(x=>x.trabalhadorId!==mkCtx.id);
+  save();closeModal();render();toast('Removido deste dia')}
+function openAdd(iso){
+  const ef=state.efetivos[iso],inD=new Set(ef.registros.map(r=>r.trabalhadorId));
+  const av=state.trabalhadores.filter(t=>t.situacaoCadastral!=='Desligado'&&!inD.has(t.id));
+  $('#mb').innerHTML=`<h2>Adicionar ao dia</h2><div class="msub">Quem está cadastrado mas fora da lista de hoje</div>
+    ${av.length?av.map(t=>`<div class="row" style="margin-bottom:9px">
+      <div class="av" style="background:${avColor(t.nome)}">${ini(t.nome)}</div>
+      <div class="ri"><div class="n">${esc(t.nome)}</div><div class="m">${esc(t.funcao||'')} · ${esc(areaName(t.areaId))}</div></div>
+      <button class="btn sm" onclick="addDay('${iso}','${t.id}')">Add</button></div>`).join('')
+      :`<div class="empty"><p>Todos já estão no efetivo de hoje.</p></div>`}
+    <div style="height:12px"></div><button class="btn ghost" onclick="closeModal()">Fechar</button>`;
+  openModal();
+}
+function addDay(iso,id){state.efetivos[iso].registros.push(snap(id,'presente'));save();openAdd(iso);render();toast('Adicionado')}
+
+/* ---------- PESSOAS ---------- */
+function vPessoas(){
+  let l=state.trabalhadores.slice().sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
+  if(pplArea!=='all')l=l.filter(t=>(t.areaId||'__n')===pplArea);
+  if(pplQ){const q=pplQ.toLowerCase();l=l.filter(t=>(t.nome||'').toLowerCase().includes(q)||String(t.matricula||'').includes(q))}
+  const at=state.trabalhadores.filter(t=>t.situacaoCadastral==='Ativo').length;
+  const i=intro('pessoas','Sua base de pessoas',
+    `Cadastre cada um <b>uma vez só</b> — depois aparece todo dia no efetivo.
+     <ul><li>Toque no <b>+</b> pra adicionar</li><li>Toque num nome pra <b>editar</b></li>
+     <li>A <b>matrícula não repete</b>; o sistema avisa</li></ul>
+     <b>Ativo</b> entra no efetivo. <b>Férias</b> fica cadastrado. <b>Desligado</b> sai dos novos dias, mas o histórico é mantido.`);
+  return i+`
+    <div class="stats an" style="margin-top:0">
+      <div class="stat"><div class="n">${state.trabalhadores.length}</div><div class="l">Cadastrados</div></div>
+      <div class="stat g"><div class="n">${at}</div><div class="l">Ativos</div></div>
+      <div class="stat b"><div class="n">${state.areas.length}</div><div class="l">Áreas</div></div>
+    </div>
+    <div class="sh"><h2>Trabalhadores</h2><button onclick="go('areas')">Áreas</button></div>
+    <div class="search an"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 17 17"/></svg>
+      <input placeholder="Buscar por nome ou matrícula" value="${esc(pplQ)}" oninput="pplQ=this.value;render()"></div>
+    ${state.areas.length?`<div class="fscroll an">
+      <button class="fpill ${pplArea==='all'?'on':''}" onclick="pplArea='all';render()">Todos</button>
+      ${state.areas.map(a=>`<button class="fpill ${pplArea===a.id?'on':''}" onclick="pplArea='${a.id}';render()">${esc(a.nome)}</button>`).join('')}
+      <button class="fpill ${pplArea==='__n'?'on':''}" onclick="pplArea='__n';render()">Sem área</button></div>`:''}
+    ${l.length?l.map(t=>{
+      let b='';
+      if(t.situacaoCadastral==='Férias')b=`<span class="pill ferias">Férias</span>`;
+      else if(t.situacaoCadastral==='Desligado')b=`<span class="pill ausente">Deslig.</span>`;
+      return `<div class="row an" onclick="openWorker('${t.id}')">
+        <div class="av" style="background:${avColor(t.nome)}">${ini(t.nome)}</div>
+        <div class="ri"><div class="n">${esc(t.nome)}</div>
+          <div class="m">${t.matricula?esc(t.matricula)+' · ':''}${esc(t.funcao||'—')} · ${esc(areaName(t.areaId))}</div></div>
+        ${b||'<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>'}</div>`}).join('')
+      :`<div class="empty an"><div class="ec"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.2 3-5 6-5s6 1.8 6 5"/></svg></div>
+        <p>Nenhum trabalhador${pplQ||pplArea!=='all'?' encontrado':' cadastrado'}.<br>Toque no + para adicionar.</p></div>`}
+    <div style="height:10px"></div>`;
+}
+function openWorker(id){
+  const t=id?state.trabalhadores.find(x=>x.id===id):null;
+  const ao=['<option value="">Sem área</option>'].concat(state.areas.map(a=>`<option value="${a.id}" ${t&&t.areaId===a.id?'selected':''}>${esc(a.nome)}</option>`)).join('');
+  const fo=['<option value="">Selecionar...</option>'].concat(state.funcoes.map(f=>`<option ${t&&t.funcao===f?'selected':''}>${esc(f)}</option>`)).join('');
+  const co=['Ativo','Férias','Desligado'].map(s=>`<option ${t&&t.situacaoCadastral===s?'selected':''}>${s}</option>`).join('');
+  $('#mb').innerHTML=`<h2>${t?'Editar trabalhador':'Novo trabalhador'}</h2>
+    <div class="msub">${t?'Mudanças não alteram dias já salvos':'Cadastro na base do sistema'}</div>
+    <div class="field"><label>Matrícula</label><input id="wM" inputmode="numeric" placeholder="Ex: 1052" value="${esc(t?t.matricula:'')}"><div class="hint">Não pode repetir.</div></div>
+    <div class="field"><label>Nome completo</label><input id="wN" placeholder="Ex: Carlos Silva" value="${esc(t?t.nome:'')}"></div>
+    <div class="field"><label>Função</label><select id="wF">${fo}</select></div>
+    <div class="field"><label>Área / Equipe</label><select id="wA">${ao}</select></div>
+    <div class="field"><label>Encarregado</label><input id="wR" placeholder="Ex: Roberto" value="${esc(t?t.responsavel:'')}"></div>
+    <div class="field"><label>Situação cadastral</label><select id="wC">${co}</select></div>
+    <div class="brow" style="margin-top:0"><button class="btn ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" onclick="saveWorker('${id||''}')">Salvar</button></div>
+    ${t?`<div style="height:10px"></div><button class="btn ghost" style="color:var(--red)" onclick="delWorker('${id}')">Excluir cadastro</button>`:''}
+    <div style="height:6px"></div>`;
+  openModal();
+}
+function saveWorker(id){
+  const m=$('#wM').value.trim(),n=$('#wN').value.trim();
+  if(!n){toast('Informe o nome');return}
+  if(m&&state.trabalhadores.some(t=>t.id!==id&&String(t.matricula)===m)){toast('Matrícula já existe');return}
+  const d={matricula:m,nome:n,funcao:$('#wF').value,areaId:$('#wA').value||null,
+    responsavel:$('#wR').value.trim(),situacaoCadastral:$('#wC').value};
+  if(id)Object.assign(state.trabalhadores.find(t=>t.id===id),d);
+  else state.trabalhadores.push({id:uid(),...d});
+  save();closeModal();render();toast('Trabalhador salvo')}
+function delWorker(id){
+  if(!confirm('Excluir este cadastro? O histórico dos dias já salvos é mantido.'))return;
+  state.trabalhadores=state.trabalhadores.filter(t=>t.id!==id);save();closeModal();render();toast('Excluído')}
+
+/* ---------- ÁREAS ---------- */
+function vAreas(){
+  const i=intro('areas','Para que servem as áreas',
+    `São os grupos onde as pessoas trabalham — Pátio 2, Montagem, Mecânica.
+     <ul><li>Servem pra <b>separar os totais</b> por equipe</li>
+     <li>Cada uma pode ter um <b>encarregado</b></li>
+     <li>Toque no <b>+</b> pra criar</li></ul>
+     Apagar uma área não exclui ninguém — as pessoas só ficam sem área.`);
+  return i+`<div class="sh" style="margin-top:0"><h2>Áreas / Equipes</h2>
+    <span style="font-size:12.5px;color:var(--muted);font-weight:600">${state.areas.length}</span></div>
+    ${state.areas.length?state.areas.map(a=>{
+      const n=state.trabalhadores.filter(t=>t.areaId===a.id&&t.situacaoCadastral!=='Desligado').length;
+      return `<div class="row an">
+        <div class="av" style="background:${avColor(a.nome)}">${ini(a.nome)}</div>
+        <div class="ri"><div class="n">${esc(a.nome)}</div>
+          <div class="m">${a.responsavel?'Enc. '+esc(a.responsavel)+' · ':''}${n} pessoa${n!==1?'s':''}</div></div>
+        <button class="ib2" onclick="event.stopPropagation();openArea('${a.id}')"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+        <button class="ib2 del" onclick="event.stopPropagation();delArea('${a.id}')"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>`}).join('')
+      :`<div class="empty an"><div class="ec"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg></div>
+        <p>Nenhuma área cadastrada.<br>Toque no + para criar.</p></div>`}`;
+}
+function openArea(id){
+  const a=id?state.areas.find(x=>x.id===id):null;
+  $('#mb').innerHTML=`<h2>${a?'Editar área':'Nova área'}</h2><div class="msub">Áreas organizam os totais</div>
+    <div class="field"><label>Nome da área / equipe</label><input id="aN" placeholder="Ex: Pátio 2" value="${esc(a?a.nome:'')}"></div>
+    <div class="field"><label>Encarregado</label><input id="aR" placeholder="Ex: João" value="${esc(a?a.responsavel:'')}"></div>
+    <div class="brow" style="margin-top:0"><button class="btn ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" onclick="saveArea('${id||''}')">Salvar</button></div><div style="height:6px"></div>`;
+  openModal();
+}
+function saveArea(id){
+  const n=$('#aN').value.trim();if(!n){toast('Informe o nome');return}
+  const r=$('#aR').value.trim();
+  if(id)Object.assign(state.areas.find(a=>a.id===id),{nome:n,responsavel:r});
+  else state.areas.push({id:uid(),nome:n,responsavel:r});
+  save();closeModal();render();toast('Área salva')}
+function delArea(id){
+  const n=state.trabalhadores.filter(t=>t.areaId===id).length;
+  if(!confirm(`Excluir esta área?${n?` ${n} pessoa(s) ficarão sem área.`:''}`))return;
+  state.trabalhadores.forEach(t=>{if(t.areaId===id)t.areaId=null});
+  state.areas=state.areas.filter(a=>a.id!==id);save();render();toast('Área excluída')}
+
+/* ---------- HISTÓRICO ---------- */
+function vHistorico(){
+  const ds=Object.keys(state.efetivos).sort().reverse(),ef=state.efetivos[histDate];
+  const i=intro('historico','Consultando dias anteriores',
+    `Todo dia lançado fica guardado do jeito que estava.
+     <ul><li>Escolha a data ou toque num <b>dia recente</b></li>
+     <li>Dá pra <b>gerar o PDF de qualquer dia</b></li></ul>
+     O que você mudar hoje <b>não altera</b> os dias passados.`);
+  const db=`<div class="card an" style="padding:12px 14px;display:flex;align-items:center;gap:11px;margin-bottom:13px">
+    <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--acc2);stroke-width:2;fill:none;flex:0 0 auto"><rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
+    <input type="date" value="${histDate}" onchange="histDate=this.value;render()" style="border:none;background:none;flex:1;font-weight:700;color:var(--ink)"></div>`;
+  const q=ds.length?`<div class="fscroll an">${ds.slice(0,16).map(d=>`<button class="fpill ${d===histDate?'on':''}" onclick="histDate='${d}';render()">${fmtD(d)}</button>`).join('')}</div>`:'';
+  let c;
+  if(!ef){c=`<div class="empty an"><div class="ec"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18"/></svg></div>
+    <p>Sem efetivo salvo em ${fmtD(histDate)}.</p></div>`}
+  else{
+    const t=totals(ef.registros),ar=areaTotals(ef.registros);
+    c=`<div class="hero an"><div class="hdate">${fmtD(histDate)}</div>
+      <div class="hl">Efetivo do dia</div>
+      <div class="hbig"><div class="n">${t.total}</div><div class="u">trabalhadores</div></div>
+      <div class="hsplit"><div><div class="n">${t.presente}</div><div class="l">Presentes</div></div>
+        <div><div class="n">${t.ausentes}</div><div class="l">Ausentes</div></div>
+        <div><div class="n">${ar.length}</div><div class="l">Áreas</div></div></div></div>
+      <div class="stats">${SITS.map(s=>`<div class="stat an"><div class="n" style="color:${s.c}">${t[s.k]||0}</div><div class="l">${s.label}</div></div>`).join('')}</div>
+      <div class="sh"><h2>Por área</h2></div>${ar.map(aCard).join('')}
+      <div class="sh"><h2>Lista</h2></div>
+      ${ef.registros.map(r=>{const s=sitOf(r.situacao);
+        let m=`${esc(r.funcao||'—')}${r.responsavel?' · '+esc(r.responsavel):''}`;
+        if(r.situacao==='ausente'&&r.motivo)m=`<span class="rz">Ausente · ${esc(r.motivo)}</span>`;
+        return `<div class="row an"><div class="av" style="background:${avColor(r.nome)}">${ini(r.nome)}</div>
+          <div class="ri"><div class="n">${esc(r.nome)}</div><div class="m">${m}</div></div>
+          <span class="pill ${s.k}">${s.label}</span></div>`}).join('')}
+      <div style="height:14px"></div>
+      <button class="btn an" onclick="printEf('${histDate}')"><svg viewBox="0 0 24 24"><path d="M7 8V3h10v5M7 17h10v4H7z"/><rect x="4" y="8" width="16" height="9" rx="1.5"/></svg>Gerar PDF deste dia</button>`;
+  }
+  return `${db}${i}${q}${c}`;
+}
+
+/* ---------- RELATÓRIOS ---------- */
+function vRelatorios(){
+  const ds=Object.keys(state.efetivos).filter(d=>d.startsWith(repMonth)).sort();
+  const ag={total:0,presente:0,ausente:0,folga:0,ferias:0,atestado:0};
+  ds.forEach(d=>state.efetivos[d].registros.forEach(r=>{ag[r.situacao]=(ag[r.situacao]||0)+1;ag.total++}));
+  const i=intro('relatorios','O que dá pra ver aqui',
+    `Junta todos os dias do mês e soma.
+     <ul><li><b>Geral</b>: totais do mês inteiro</li><li><b>Por área</b>: separado por equipe</li>
+     <li><b>Por pessoa</b>: a frequência de alguém, dia a dia</li></ul>`);
+  const bar=`<div class="card an" style="margin-bottom:13px"><div class="field" style="margin-bottom:0">
+    <label>Mês de referência</label><input type="month" value="${repMonth}" onchange="repMonth=this.value;render()"></div></div>`;
+  const tabs=`<div class="fscroll an">${[['geral','Geral'],['area','Por área'],['trab','Por pessoa']]
+    .map(([k,l])=>`<button class="fpill ${repTab===k?'on':''}" onclick="repTab='${k}';render()">${l}</button>`).join('')}</div>`;
+  let b='';
+  if(!ds.length){b=`<div class="empty an"><div class="ec"><svg viewBox="0 0 24 24"><path d="M6 20V10M12 20V4M18 20v-7"/></svg></div><p>Nenhum efetivo lançado neste mês.</p></div>`}
+  else if(repTab==='geral'){
+    b=`<div class="hero an"><div class="hl">Resumo do mês</div>
+      <div class="hbig"><div class="n">${ds.length}</div><div class="u">dia(s) lançado(s)</div></div>
+      <div class="hsplit"><div><div class="n">${ag.presente}</div><div class="l">Presenças</div></div>
+        <div><div class="n">${ag.ausente}</div><div class="l">Faltas</div></div>
+        <div><div class="n">${ag.total}</div><div class="l">Registros</div></div></div></div>
+      <div class="stats">${SITS.map(s=>`<div class="stat an"><div class="n" style="color:${s.c}">${ag[s.k]||0}</div><div class="l">${s.label}</div></div>`).join('')}</div>`;
+  } else if(repTab==='area'){
+    const m={};
+    ds.forEach(d=>state.efetivos[d].registros.forEach(r=>{const id=r.areaId||'__n';
+      m[id]=m[id]||{name:areaName(r.areaId),presente:0,ausente:0,total:0};
+      m[id].total++;if(r.situacao==='presente')m[id].presente++;else m[id].ausente++}));
+    b=Object.values(m).sort((a,b)=>b.total-a.total).map(a=>{
+      const p=a.total?Math.round(a.presente/a.total*100):0;
+      return `<div class="acard an"><div class="ah"><div><div class="n">${esc(a.name)}</div>
+        <div class="r">${a.total} registros no mês</div></div>
+        <div style="text-align:right"><div class="big">${p}%<small>PRESENÇA</small></div></div></div>
+        <div class="bar"><span data-w="${p}" style="width:0"></span></div>
+        <div class="mini"><span class="mchip presente"><i></i>${a.presente} presenças</span>
+        <span class="mchip ausente"><i></i>${a.ausente} faltas</span></div></div>`}).join('');
+  } else {
+    const o=['<option value="">Selecionar pessoa...</option>'].concat(
+      state.trabalhadores.slice().sort((a,b)=>(a.nome||'').localeCompare(b.nome||''))
+      .map(t=>`<option value="${t.id}" ${repWorker===t.id?'selected':''}>${esc(t.nome)}</option>`)).join('');
+    b=`<div class="card an" style="margin-bottom:12px"><div class="field" style="margin-bottom:0">
+      <label>Trabalhador</label><select onchange="repWorker=this.value;render()">${o}</select></div></div>`;
+    if(repWorker){
+      const w=state.trabalhadores.find(t=>t.id===repWorker);
+      const st={presente:0,ausente:0,folga:0,ferias:0,atestado:0},rows=[];
+      ds.forEach(d=>{const r=state.efetivos[d].registros.find(x=>x.trabalhadorId===repWorker);
+        if(r){st[r.situacao]=(st[r.situacao]||0)+1;rows.push({d,r})}});
+      b+=`<div class="hero an"><div class="hl">${esc(w.nome)}</div>
+        <div class="hbig"><div class="n">${st.presente}</div><div class="u">presenças no mês</div></div>
+        <div class="hsplit"><div><div class="n">${st.ausente}</div><div class="l">Faltas</div></div>
+          <div><div class="n">${st.folga}</div><div class="l">Folgas</div></div>
+          <div><div class="n">${rows.length}</div><div class="l">Dias</div></div></div></div>
+        <div class="stats">${SITS.map(s=>`<div class="stat an"><div class="n" style="color:${s.c}">${st[s.k]||0}</div><div class="l">${s.label}</div></div>`).join('')}</div>
+        <div class="sh"><h2>Linha do tempo</h2></div>
+        ${rows.length?`<div class="card an"><div class="tl">${rows.map(({d,r})=>{const s=sitOf(r.situacao);
+          return `<div class="tli"><div class="d">${fmtD(d)}</div><div class="x" style="color:${s.c}">${s.label}</div>
+            ${r.motivo?`<div class="y">${esc(r.motivo)}</div>`:''}</div>`}).join('')}</div></div>`
+          :`<div class="empty an"><p>Sem registros no mês.</p></div>`}`;
+    }
+  }
+  return `${i}${bar}${tabs}${b}`;
+}
+
+/* ---------- AJUSTES ---------- */
+function vAjustes(){
+  const i=intro('ajustes','O que dá pra ajustar',
+    `<ul><li><b>Aparência</b>: cor do sistema e modo escuro</li>
+     <li><b>Nome do local</b>: aparece no topo e no PDF</li>
+     <li><b>Backup</b>: baixa um arquivo com tudo. Guarde no Drive ou e-mail</li>
+     <li><b>Funções</b>: a lista que aparece ao cadastrar alguém</li></ul>
+     Os dados ficam <b>neste aparelho</b>. Faça backup de vez em quando.`);
+  const L=licStatus();
+  const inst=isStandalone()
+    ? `<div class="card an" style="display:flex;align-items:center;gap:12px">
+         <div style="width:40px;height:40px;border-radius:13px;background:var(--green-s);display:grid;place-items:center;flex:0 0 auto">
+           <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--green);stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M20 6 9 17l-5-5"/></svg></div>
+         <div><div style="font-weight:700;font-size:14.5px">App instalado</div>
+           <div style="font-size:12.5px;color:var(--muted);font-weight:500;margin-top:2px">Você já está usando pelo ícone.</div></div>
+       </div>`
+    : `<div class="card an">
+         <div class="trow" style="align-items:flex-start">
+           <div><div class="tt">Instalar no celular</div>
+             <div class="td">Cria um ícone na tela inicial. Abre com um toque e funciona sem internet.</div></div>
+         </div>
+         <div style="margin-top:13px"><button class="btn" onclick="showInstall()">
+           <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Ver como instalar</button></div>
+       </div>`;
+  return i+`
+    <div class="sh" style="margin-top:0"><h2>Aplicativo</h2></div>
+    ${inst}
+    <div class="sh"><h2>Aparência</h2></div>
+    <div class="card an">
+      <div style="font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:10px">Cor do sistema</div>
+      <div class="dots">${TEMAS.map(t=>`<button class="dot ${state.config.tema===t.k?'on':''}"
+        style="background:linear-gradient(135deg,${t.a},${t.b})" onclick="setTema('${t.k}')" title="${t.n}"></button>`).join('')}</div>
+      <div class="modes">
+        <button class="${!state.config.dark?'on':''}" onclick="setDark(false)">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Claro</button>
+        <button class="${state.config.dark?'on':''}" onclick="setDark(true)">
+          <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Escuro</button>
+      </div>
+    </div>
+
+    <div class="sh"><h2>Identificação</h2></div>
+    <div class="card an"><div class="field" style="margin-bottom:0"><label>Nome do local / empresa</label>
+      <input value="${esc(state.config.empresa)}" onchange="state.config.empresa=this.value.trim();save();render()">
+      <div class="hint">Aparece no topo e no cabeçalho do PDF.</div></div></div>
+
+    <div class="sh"><h2>Backup dos dados</h2></div>
+    <div class="card an">
+      <div class="trow"><div><div class="tt">Lembrete de backup</div>
+        <div class="td">Avisa para você salvar a cópia no Drive.</div></div>
+        <div class="sw ${state.config.driveBackup?'on':''}" onclick="state.config.driveBackup=!state.config.driveBackup;save();render()"></div></div>
+      <div class="hint" style="margin-top:10px">O backup é um arquivo que você guarda onde quiser: Google Drive, e-mail ou pen drive.</div>
+      <div class="brow"><button class="btn ghost sm" style="flex:1" onclick="doExport()">Baixar</button>
+        <button class="btn ghost sm" style="flex:1" onclick="doImport()">Restaurar</button></div>
+    </div>
+
+    <div class="sh"><h2>Funções profissionais</h2>
+      <span style="font-size:12.5px;color:var(--muted);font-weight:600">${state.funcoes.length}</span></div>
+    <div class="card an">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:13px">
+        ${state.funcoes.map((f,ix)=>`<span class="tagchip">${esc(f)}
+          <button onclick="delFunc(${ix})" style="color:var(--muted);font-weight:800">×</button></span>`).join('')||'<span style="color:var(--muted);font-size:13px">Nenhuma.</span>'}
+      </div>
+      <div style="display:flex;gap:9px">
+        <input id="cfF" placeholder="Nova função" style="flex:1;padding:12px 13px;border:1.5px solid var(--line);border-radius:13px;background:var(--bg);color:var(--ink)">
+        <button class="btn sm" onclick="addFunc()">Add</button></div>
+    </div>
+
+    <div class="sh"><h2>Este sistema</h2></div>
+    <div class="card an">
+      <div class="lrow"><div><div class="n">${L.full?'Versão liberada':'Versão de teste'}</div>
+        <div class="m">${L.full?'Sem prazo de uso':'Válida até '+fmtD(L.expira)}</div></div></div>
+      <div class="lrow"><div><div class="n">${state.trabalhadores.length}</div><div class="m">Trabalhadores</div></div></div>
+      <div class="lrow"><div><div class="n">${Object.keys(state.efetivos).length}</div><div class="m">Dias no histórico</div></div></div>
+      <div style="height:13px"></div>
+      <button class="btn ghost" onclick="showIntros()">Reativar explicações</button>
+      <div style="height:10px"></div>
+      <button class="btn ghost" style="color:var(--red)" onclick="resetAll()">Apagar todos os dados</button>
+    </div><div style="height:14px"></div>`;
+}
+function setTema(k){state.config.tema=k;save();render();setupManifest();toast('Cor alterada')}
+function setDark(v){state.config.dark=v;save();render()}
+function addFunc(){const v=$('#cfF').value.trim();if(!v)return;
+  if(state.funcoes.some(f=>f.toLowerCase()===v.toLowerCase())){toast('Já existe');return}
+  state.funcoes.push(v);save();render()}
+function delFunc(i){state.funcoes.splice(i,1);save();render()}
+function resetAll(){if(!confirm('Apagar TODOS os dados? Não dá pra desfazer.'))return;
+  if(!confirm('Tem certeza mesmo?'))return;
+  const lic=state.licenca;localStorage.removeItem(KEY);state=load();state.licenca=lic;save();go('inicio');toast('Dados apagados')}
+
+/* ---------- AJUDA ---------- */
+function vAjuda(){
+  const H=(ic,t,c,op)=>`<div class="hsec ${op?'open':''}"><button class="hq" onclick="togHelp(this)">
+    <span class="l"><span class="ico"><svg viewBox="0 0 24 24">${ic}</svg></span><span class="t">${t}</span></span>
+    <svg class="arw" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button><div class="ha">${c}</div></div>`;
+  return `<div class="sh" style="margin-top:0"><h2>Como usar</h2>
+    <span style="font-size:12.5px;color:var(--muted);font-weight:600">toque p/ abrir</span></div>
+  ${H('<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/>','O dia a dia (comece aqui)',
+    `<ol><li>Abra e vá em <b>Efetivo</b> (embaixo)</li>
+     <li>Toque em <b>Carregar do último dia</b> — vem a lista de ontem, todos presentes</li>
+     <li>Toque no nome de quem <b>faltou</b> e marque</li>
+     <li>Pronto. Os totais já estão prontos</li></ol>
+     <div class="tip">Não existe botão de salvar. Tudo é gravado na hora que você toca.</div>`,true)}
+  ${H('<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.2 3-5 6-5s6 1.8 6 5"/><path d="M17 11h4M19 9v4"/>','Primeiro uso: cadastrar',
+    `<ol><li>Menu (☰) → <b>Áreas</b> → <b>+</b> → crie suas áreas</li>
+     <li><b>Pessoas</b> (embaixo) → <b>+</b> → cadastre cada trabalhador</li></ol>
+     Depois disso nunca mais precisa refazer.
+     <div class="tip">A matrícula não pode repetir. Se aparecer "Matrícula já existe", alguém já usa esse número.</div>`)}
+  ${H('<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>','Marcar presença',
+    `Toque no nome da pessoa. Abre a janela com:
+     <ul><li><b>Presente</b> — veio trabalhar</li><li><b>Ausente</b> — faltou (aparece campo de motivo)</li>
+     <li><b>Folga</b> · <b>Férias</b> · <b>Atestado</b></li></ul>
+     <div class="tip">O motivo é opcional. Preencha só quando souber — dá pra completar depois.</div>`)}
+  ${H('<path d="M12 5v14M5 12h14"/>','Alguém entrou ou saiu',
+    `<b>Chegou alguém hoje:</b> role até embaixo na tela Efetivo → <b>Adicionar alguém ao dia</b>.
+     <br><br><b>Não faz mais parte hoje:</b> toque no nome → <b>Remover deste dia</b>.
+     <br><br><b>Saiu da empresa:</b> Pessoas → abra o cadastro → mude para <b>Desligado</b>. Some dos próximos dias, mas o histórico fica.`)}
+  ${H('<path d="M7 8V3h10v5M7 17h10v4H7z"/><rect x="4" y="8" width="16" height="9" rx="1.5"/>','PDF e WhatsApp',
+    `Toque em <b>Gerar PDF</b>.
+     <ol><li>Abre a tela de impressão</li><li>Em "Destino", escolha <b>Salvar como PDF</b></li>
+     <li>Salve o arquivo</li><li>Abra o WhatsApp e anexe</li></ol>
+     <div class="tip">Dá pra gerar o PDF de qualquer dia passado pelo Histórico.</div>`)}
+  ${H('<rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/>','Dias anteriores',
+    `Vá em <b>Histórico</b>. Escolha a data ou toque num dia recente.
+     <div class="tip">O que você mudar hoje nunca altera um dia que já passou.</div>`)}
+  ${H('<path d="M6 20V10M12 20V4M18 20v-7"/>','Fechar o mês',
+    `Menu (☰) → <b>Relatórios</b>. Escolha o mês e a aba:
+     <ul><li><b>Geral</b> — totais do mês</li><li><b>Por área</b> — separado por equipe</li>
+     <li><b>Por pessoa</b> — a frequência de alguém, dia a dia</li></ul>`)}
+  ${H('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>','Backup: não perca os dados',
+    `Os dados ficam <b>neste aparelho</b>, dentro do navegador.
+     <br><br><b>Fazer backup:</b> Ajustes → <b>Baixar</b>. Guarde no Google Drive ou mande pro seu e-mail.
+     <br><br><b>Restaurar:</b> Ajustes → <b>Restaurar</b> e escolha o arquivo.
+     <div class="tip">Se limpar o histórico do navegador, os dados somem. O backup traz tudo de volta. Faça uma vez por semana.</div>`)}
+  ${H('<rect x="5" y="2" width="14" height="20" rx="3"/><path d="M11 18h2"/>','Ícone na tela inicial',
+    `O jeito mais fácil: <b>Ajustes → Instalar no celular</b>. O próprio sistema mostra o passo a passo do seu aparelho.
+     <br><br>Se preferir fazer na mão:
+     <br><br><b>Android (Chrome):</b> três pontinhos (⋮) → "Adicionar à tela inicial".
+     <br><br><b>iPhone (Safari):</b> botão compartilhar (□↑) → "Adicionar à Tela de Início".
+     <div class="tip">Depois de instalado, abre igual a qualquer aplicativo — sem precisar procurar o arquivo.</div>`)}
+  ${H('<circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>','Dúvidas comuns',
+    `<b>Preciso de internet?</b> Não, funciona offline.
+     <br><br><b>Custa alguma coisa?</b> Não.
+     <br><br><b>Alguém vê meus dados?</b> Não, ficam só no seu aparelho.
+     <br><br><b>Celular e computador juntos?</b> Cada aparelho tem os seus dados. Pra passar de um pro outro, use o backup.
+     <br><br><b>Errei uma marcação?</b> Toque de novo e mude. Sem limite.`)}
+  <div style="height:14px"></div>`;
+}
+
+/* ---------- backup ---------- */
+function doExport(){
+  const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download=`efetivo-backup-${todayISO()}.json`;a.click();URL.revokeObjectURL(a.href);
+  closeDrawer();toast('Backup baixado')}
+function doImport(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='application/json,.json';
+  inp.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+    r.onload=()=>{try{const d=JSON.parse(r.result);
+      if(!d.config||!Array.isArray(d.trabalhadores))throw 0;
+      if(!confirm('Restaurar este backup? Os dados atuais serão substituídos.'))return;
+      const lic=state.licenca;state=migrate(d);state.licenca=lic;save();closeDrawer();go('inicio');toast('Backup restaurado')
+    }catch(_){toast('Arquivo inválido')}};r.readAsText(f)};
+  inp.click()}
+
+/* ---------- PDF ---------- */
+function printEf(iso){
+  const ef=state.efetivos[iso];if(!ef){toast('Sem efetivo neste dia');return}
+  const t=totals(ef.registros),ar=areaTotals(ef.registros);
+  const emp=state.config.empresa||'Controle de Efetivo';
+  const rows=ef.registros.slice().sort((a,b)=>{
+    const x=areaName(a.areaId),y=areaName(b.areaId);
+    return x===y?(a.nome||'').localeCompare(b.nome||''):x.localeCompare(y)})
+    .map(r=>{const s=sitOf(r.situacao);
+      return `<tr><td>${esc(r.matricula||'')}</td><td>${esc(r.nome||'')}</td><td>${esc(r.funcao||'')}</td>
+        <td>${esc(areaName(r.areaId))}</td><td>${esc(r.responsavel||'')}</td>
+        <td style="color:${s.c};font-weight:700">${s.label}</td><td>${esc(r.situacao==='ausente'?(r.motivo||''):'')}</td></tr>`}).join('');
+  const arows=ar.map(a=>`<tr><td>${esc(a.name)}</td><td>${a.t.total}</td>
+    <td style="color:#12A16B;font-weight:700">${a.t.presente}</td><td style="color:#E1524F;font-weight:700">${a.t.ausentes}</td></tr>`).join('');
+  const T=TEMAS.find(x=>x.k===state.config.tema)||TEMAS[0];
+  $('#pa').innerHTML=`<style>
+    #pa{font-family:'Plus Jakarta Sans',Arial,sans-serif;color:#111C25;padding:26px 22px}
+    #pa h1{font-size:21px;margin:0;font-weight:800;letter-spacing:-.02em}
+    #pa .sub{font-size:10px;color:#7A8A96;text-transform:uppercase;letter-spacing:.14em;margin-top:4px;font-weight:700}
+    #pa .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid ${T.a};padding-bottom:11px}
+    #pa .dt{text-align:right;font-size:11px;color:#3D4E5A;line-height:1.6;font-weight:600}
+    #pa .sum{display:flex;gap:10px;margin:17px 0}
+    #pa .sum div{flex:1;border:1px solid #E8EDF1;border-radius:10px;padding:12px;text-align:center}
+    #pa .sum .n{font-size:26px;font-weight:800;letter-spacing:-.03em}
+    #pa .sum .l{font-size:9px;text-transform:uppercase;letter-spacing:.11em;color:#7A8A96;margin-top:4px;font-weight:700}
+    #pa h2{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#7A8A96;margin:20px 0 9px;font-weight:800}
+    #pa table{width:100%;border-collapse:collapse;font-size:11px}
+    #pa th{text-align:left;background:${T.a};color:#fff;padding:7px 9px;font-size:9px;
+      text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+    #pa td{padding:7px 9px;border-bottom:1px solid #F1F5F8}
+    #pa .ft{margin-top:22px;font-size:9px;color:#A8B4BC;text-align:center}
+  </style>
+  <div class="hd"><div><h1>${esc(emp)}</h1><div class="sub">Relatório de Efetivo</div></div>
+    <div class="dt">${fmtLong(iso)}<br>Gerado em ${fmtD(todayISO())}</div></div>
+  <div class="sum"><div><div class="n">${t.total}</div><div class="l">Efetivo Total</div></div>
+    <div><div class="n" style="color:#12A16B">${t.presente}</div><div class="l">Presentes</div></div>
+    <div><div class="n" style="color:#E1524F">${t.ausentes}</div><div class="l">Ausentes</div></div></div>
+  <h2>Resumo por área</h2>
+  <table><thead><tr><th>Área</th><th>Total</th><th>Presentes</th><th>Ausentes</th></tr></thead><tbody>${arows}</tbody></table>
+  <h2>Relação do efetivo</h2>
+  <table><thead><tr><th>Mat.</th><th>Nome</th><th>Função</th><th>Área</th><th>Enc.</th><th>Situação</th><th>Motivo</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="ft">Documento gerado pelo sistema de Controle de Efetivo</div>`;
+  window.print();
+}
+
+/* ============================================================
+   INSTALAR NO CELULAR (PWA / atalho na tela inicial)
+   ============================================================ */
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;});
+window.addEventListener('appinstalled',()=>{deferredPrompt=null;
+  state.config.instalado=true;save();toast('App instalado!')});
+
+function isStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         window.navigator.standalone===true;
+}
+function plat(){
+  const u=navigator.userAgent||'';
+  if(/iPad|iPhone|iPod/.test(u)|| (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1))return'ios';
+  if(/Android/i.test(u))return'android';
+  return'desktop';
+}
+/* gera o ícone do app (usado no manifesto e no atalho) */
+function makeIcon(size){
+  const c=document.createElement('canvas');c.width=c.height=size;
+  const x=c.getContext('2d');
+  const T=TEMAS.find(t=>t.k===state.config.tema)||TEMAS[0];
+  const g=x.createLinearGradient(0,0,size,size);g.addColorStop(0,T.a);g.addColorStop(1,T.b);
+  x.fillStyle=g;x.fillRect(0,0,size,size);
+  x.fillStyle='#fff';x.font=`800 ${size*0.5}px system-ui,sans-serif`;
+  x.textAlign='center';x.textBaseline='middle';
+  x.fillText((state.config.empresa||'E').trim().charAt(0).toUpperCase()||'E',size/2,size/2+size*0.02);
+  return c.toDataURL('image/png');
+}
+function setupManifest(){
+  try{
+    const i192=makeIcon(192),i512=makeIcon(512);
+    const T=TEMAS.find(t=>t.k===state.config.tema)||TEMAS[0];
+    const m={name:(state.config.empresa||'Controle de Efetivo'),
+      short_name:'Efetivo',start_url:location.href,scope:'./',display:'standalone',
+      orientation:'portrait',background_color:T.a,theme_color:T.a,
+      icons:[{src:i192,sizes:'192x192',type:'image/png',purpose:'any'},
+             {src:i512,sizes:'512x512',type:'image/png',purpose:'any maskable'}]};
+    const url=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));
+    let l=document.querySelector('link[rel=manifest]');
+    if(!l){l=document.createElement('link');l.rel='manifest';document.head.appendChild(l)}
+    l.href=url;
+    let a=document.querySelector('link[rel=apple-touch-icon]');
+    if(!a){a=document.createElement('link');a.rel='apple-touch-icon';document.head.appendChild(a)}
+    a.href=i192;
+    let c=document.querySelector('meta[name=apple-mobile-web-app-capable]');
+    if(!c){c=document.createElement('meta');c.name='apple-mobile-web-app-capable';c.content='yes';document.head.appendChild(c)}
+    let t=document.querySelector('meta[name=apple-mobile-web-app-title]');
+    if(!t){t=document.createElement('meta');t.name='apple-mobile-web-app-title';document.head.appendChild(t)}
+    t.content=state.config.empresa||'Efetivo';
+  }catch(e){}
+}
+/* mostra a notificação sozinha, com bom senso */
+function maybeShowInstall(){
+  if(isStandalone()||state.config.instalado)return;
+  if(state.config.instNunca)return;
+  if(!state.config.setupDone)return;
+  const c=state.config.instCount||0;
+  const last=state.config.instLast||'';
+  if(c>=4)return;                       // no máximo 4 vezes
+  if(last===todayISO())return;          // no máximo 1x por dia
+  setTimeout(()=>{
+    if(document.querySelector('.mscrim.open'))return;
+    state.config.instCount=c+1;state.config.instLast=todayISO();save();
+    showInstall();
+  },7000);
+}
+function showInstall(){
+  const p=plat();
+  const letra=(state.config.empresa||'E').trim().charAt(0).toUpperCase()||'E';
+  const perks=`<div class="perks">
+    <div class="perk"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M11 18h2"/></svg><div class="t">Ícone na tela</div></div>
+    <div class="perk"><svg viewBox="0 0 24 24"><path d="M5 12.5 9 8M5 12.5 9 17M19 12.5H5"/></svg><div class="t">Abre direto</div></div>
+    <div class="perk"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5l3 2"/></svg><div class="t">Sem internet</div></div>
+  </div>`;
+  let acao='';
+  if(deferredPrompt){
+    acao=`<button class="btn" onclick="doInstall()">
+      <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Instalar agora</button>`;
+  } else if(p==='ios'){
+    acao=`<div class="steps">
+      <div class="step"><div class="sn">1</div><div class="sx">Toque no botão de compartilhar
+        <span class="btnkey"><svg viewBox="0 0 24 24"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg></span>
+        na barra do Safari (embaixo).</div></div>
+      <div class="step"><div class="sn">2</div><div class="sx">Role a lista e toque em <b>Adicionar à Tela de Início</b>.</div></div>
+      <div class="step"><div class="sn">3</div><div class="sx">Confirme em <b>Adicionar</b>. Pronto — o ícone aparece junto dos seus apps.</div></div>
+    </div>`;
+  } else if(p==='android'){
+    acao=`<div class="steps">
+      <div class="step"><div class="sn">1</div><div class="sx">Toque no menu
+        <span class="btnkey"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></span>
+        no canto do Chrome.</div></div>
+      <div class="step"><div class="sn">2</div><div class="sx">Toque em <b>Adicionar à tela inicial</b> (ou <b>Instalar aplicativo</b>).</div></div>
+      <div class="step"><div class="sn">3</div><div class="sx">Confirme. O ícone aparece na tela do celular como qualquer outro app.</div></div>
+    </div>`;
+  } else {
+    acao=`<div class="steps">
+      <div class="step"><div class="sn">1</div><div class="sx">Procure o ícone de instalar
+        <span class="btnkey"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></span>
+        na barra de endereço do navegador.</div></div>
+      <div class="step"><div class="sn">2</div><div class="sx">Ou abra o menu do navegador e escolha <b>Instalar</b> / <b>Criar atalho</b>.</div></div>
+    </div>`;
+  }
+  $('#insBody').innerHTML=`
+    <div class="ph"><div class="picon">${esc(letra)}</div>
+      <div><h2>Deixe na tela do celular</h2>
+        <div class="psub">Abra com um toque, sem procurar o arquivo</div></div></div>
+    <div class="pbody">Instale como aplicativo. Não baixa nada da loja, não ocupa espaço e continua funcionando sem internet.</div>
+    ${perks}${acao}
+    <div class="later">
+      <button onclick="closeInstall()">Agora não</button>
+      <button class="n" onclick="neverInstall()">Não mostrar mais</button>
+    </div>`;
+  $('#insc').classList.add('open');
+}
+function closeInstall(){$('#insc').classList.remove('open')}
+function neverInstall(){state.config.instNunca=true;save();closeInstall();
+  toast('Ok. Fica em Ajustes se mudar de ideia')}
+async function doInstall(){
+  if(!deferredPrompt){closeInstall();showInstall();return}
+  closeInstall();
+  deferredPrompt.prompt();
+  try{const r=await deferredPrompt.userChoice;
+    if(r.outcome==='accepted'){state.config.instalado=true;save();toast('Instalando...')}
+  }catch(e){}
+  deferredPrompt=null;
+}
+
+/* ---------- drawer / modal ---------- */
+function openDrawer(){
+  $('#drN').textContent=state.config.empresa||'Controle de Efetivo';
+  const L=licStatus();
+  $('#drF').innerHTML=`Dados salvos neste aparelho<br>${L.full?'Versão liberada':'Teste até '+fmtD(L.expira)}`;
+  $('#drL').innerHTML=MENU.map(m=>`<button class="${cur===m.k?'on':''}" onclick="go('${m.k}')">
+    <svg viewBox="0 0 24 24">${(NAV.find(n=>n.k===m.k)||{}).i||'<circle cx="12" cy="12" r="8"/>'}</svg>${m.l}</button>`).join('')
+    +`<div class="dsep"></div>
+    <button onclick="doExport()"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Fazer backup</button>
+    <button onclick="doImport()"><svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 21h14"/></svg>Restaurar backup</button>`;
+  $('#scrim').classList.add('open');$('#drawer').classList.add('open')}
+function closeDrawer(){$('#scrim').classList.remove('open');$('#drawer').classList.remove('open')}
+function openModal(){$('#ms').classList.add('open')}
+function closeModal(){$('#ms').classList.remove('open')}
+
+render();
+setupManifest();
+maybeShowInstall();
+</script>
+</body>
+</html>
