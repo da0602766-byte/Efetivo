@@ -396,6 +396,22 @@ body[data-dark="1"] .codebox .c{color:#5FC5D6}
 .ins .later{display:flex;gap:12px;justify-content:space-between;margin-top:16px;align-items:center}
 .ins .later button{font-size:13px;font-weight:600;color:var(--muted);padding:8px 4px}
 .ins .later button.n{color:var(--acc2);font-weight:700}
+/* ---------- cadastro em massa ---------- */
+.steps{display:flex;gap:8px;margin-bottom:14px}
+.steps div{flex:1;text-align:center;font-size:12px;font-weight:800;color:var(--muted);
+  padding:10px 4px;border-radius:13px;background:var(--card);box-shadow:var(--shadow);letter-spacing:-.01em}
+.steps div.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;box-shadow:0 8px 18px -8px var(--acc)}
+.steps div i{display:block;font-style:normal;font-size:10px;font-weight:600;opacity:.7;margin-top:2px}
+.pill.fora{background:var(--line);color:var(--muted)}
+.ri .mw{font-size:11.5px;font-weight:600;margin-top:3px;white-space:normal;line-height:1.35}
+.ri .m2{white-space:normal;line-height:1.4}
+.btn.off{background:var(--line);color:var(--muted);box-shadow:none}
+.mbar{position:sticky;bottom:78px;z-index:20;padding:14px 0 4px;margin-top:16px;
+  background:linear-gradient(180deg,rgba(0,0,0,0),var(--bg) 14px)}
+.mta{min-height:200px;resize:vertical;line-height:1.6;font-size:14px}
+.mtip{background:var(--amber-s);border-radius:13px;padding:12px 13px;margin-bottom:12px;
+  font-size:12.5px;color:var(--ink2);font-weight:500;line-height:1.55}
+.mtip b{color:var(--ink);font-weight:700}
 </style>
 </head>
 <body>
@@ -457,13 +473,14 @@ let state=load();
 function load(){
   try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.config)return migrate(s);}catch(e){}
   return {config:{empresa:'',setupDone:false,tema:'petroleo',dark:false,hidden:{},driveBackup:false},
-    licenca:null, funcoes:[...FUNCOES_PADRAO], areas:[], trabalhadores:[], efetivos:{}};
+    licenca:null, funcoes:[...FUNCOES_PADRAO], areas:[], trabalhadores:[], efetivos:{}, ultimoLote:null};
 }
 function migrate(s){
   s.config.hidden=s.config.hidden||{};
   s.config.tema=s.config.tema||'petroleo';
   if(s.config.dark===undefined)s.config.dark=false;
   s.licenca=s.licenca||null;
+  s.ultimoLote=s.ultimoLote||null;
   return s;
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){toast('Erro ao salvar')}}
@@ -524,6 +541,7 @@ const NAV=[
 ];
 const MENU=[
   {k:'inicio',l:'Início'},{k:'efetivo',l:'Efetivo de Hoje'},{k:'pessoas',l:'Trabalhadores'},
+  {k:'massa',l:'Cadastro em Massa',i:'<path d="M4 6h10M4 12h10M4 18h7"/><path d="M17.5 14v6M14.5 17h6"/>'},
   {k:'areas',l:'Áreas / Equipes'},{k:'historico',l:'Histórico'},{k:'relatorios',l:'Relatórios'},
   {k:'ajustes',l:'Ajustes'},{k:'ajuda',l:'Como usar'}
 ];
@@ -579,6 +597,7 @@ function render(){
   if(cur==='inicio')body=vInicio();
   else if(cur==='efetivo')body=vEfetivo();
   else if(cur==='pessoas'){body=vPessoas();fab='pessoa'}
+  else if(cur==='massa')body=vMassa();
   else if(cur==='areas'){body=vAreas();fab='area'}
   else if(cur==='historico')body=vHistorico();
   else if(cur==='relatorios')body=vRelatorios();
@@ -906,15 +925,18 @@ function vPessoas(){
   const i=intro('pessoas','Sua base de pessoas',
     `Cadastre cada um <b>uma vez só</b> — depois aparece todo dia no efetivo.
      <ul><li>Toque no <b>+</b> pra adicionar</li><li>Toque num nome pra <b>editar</b></li>
+     <li>Muita gente de uma vez? Use o <b>Cadastro em Massa</b> — cola a lista toda, confere e envia</li>
      <li>A <b>matrícula não repete</b>; o sistema avisa</li></ul>
      <b>Ativo</b> entra no efetivo. <b>Férias</b> fica cadastrado. <b>Desligado</b> sai dos novos dias, mas o histórico é mantido.`);
-  return i+`
+  return i+mUndoCard()+`
     <div class="stats an" style="margin-top:0">
       <div class="stat"><div class="n">${state.trabalhadores.length}</div><div class="l">Cadastrados</div></div>
       <div class="stat g"><div class="n">${at}</div><div class="l">Ativos</div></div>
       <div class="stat b"><div class="n">${state.areas.length}</div><div class="l">Áreas</div></div>
     </div>
-    <div class="sh"><h2>Trabalhadores</h2><button onclick="go('areas')">Áreas</button></div>
+    <div class="sh"><h2>Trabalhadores</h2>
+      <span style="display:flex;gap:15px"><button onclick="go('massa')">Em massa</button>
+      <button onclick="go('areas')">Áreas</button></span></div>
     <div class="search an"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 17 17"/></svg>
       <input placeholder="Buscar por nome ou matrícula" value="${esc(pplQ)}" oninput="pplQ=this.value;render()"></div>
     ${state.areas.length?`<div class="fscroll an">
@@ -931,7 +953,9 @@ function vPessoas(){
           <div class="m">${t.matricula?esc(t.matricula)+' · ':''}${esc(t.funcao||'—')} · ${esc(areaName(t.areaId))}</div></div>
         ${b||'<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>'}</div>`}).join('')
       :`<div class="empty an"><div class="ec"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.2 3-5 6-5s6 1.8 6 5"/></svg></div>
-        <p>Nenhum trabalhador${pplQ||pplArea!=='all'?' encontrado':' cadastrado'}.<br>Toque no + para adicionar.</p></div>`}
+        <p>Nenhum trabalhador${pplQ||pplArea!=='all'?' encontrado':' cadastrado'}.<br>Toque no + para adicionar${pplQ||pplArea!=='all'?'':' — ou mande a lista inteira de uma vez'}.</p>
+        ${pplQ||pplArea!=='all'?'':`<button class="btn" onclick="go('massa')">
+          <svg viewBox="0 0 24 24"><path d="M4 6h10M4 12h10M4 18h7"/><path d="M17.5 14v6M14.5 17h6"/></svg>Cadastro em Massa</button>`}</div>`}
     <div style="height:10px"></div>`;
 }
 function openWorker(id){
@@ -965,6 +989,500 @@ function saveWorker(id){
 function delWorker(id){
   if(!confirm('Excluir este cadastro? O histórico dos dias já salvos é mantido.'))return;
   state.trabalhadores=state.trabalhadores.filter(t=>t.id!==id);save();closeModal();render();toast('Excluído')}
+
+/* ============================================================
+   CADASTRO EM MASSA
+   Cola a lista inteira -> confere e corrige na tela -> só então
+   envia para o sistema. Nada entra antes da conferência.
+   ============================================================ */
+const MKEY=KEY+'_massa';
+const M_ALIAS={
+  matricula:['matricula','mat','matr','registro','reg','chapa','cracha','codigo','cod','id','numero'],
+  nome:['nome','nomecompleto','nomedotrabalhador','trabalhador','funcionario','colaborador','empregado','pessoa'],
+  funcao:['funcao','cargo','profissao','atividade','oficio','especialidade'],
+  area:['area','equipe','setor','local','frente','time','obra','turma'],
+  responsavel:['encarregado','responsavel','lider','supervisor','chefe','gestor'],
+  situacao:['situacao','situacaocadastral','status','cadastro','vinculo']
+};
+const M_ORDENS={
+  mn:['matricula','nome','funcao','area','responsavel','situacao'],
+  nm:['nome','matricula','funcao','area','responsavel','situacao'],
+  nf:['nome','funcao','area','responsavel','situacao'],
+  so:['nome']
+};
+const M_ORDEM_OPC=[
+  {k:'auto',l:'Detectar sozinho (recomendado)'},
+  {k:'mn',  l:'Matrícula · Nome · Função · Área · Encarregado'},
+  {k:'nm',  l:'Nome · Matrícula · Função · Área · Encarregado'},
+  {k:'nf',  l:'Nome · Função · Área · Encarregado'},
+  {k:'so',  l:'Só nomes (um por linha)'}
+];
+const nrm=s=>(s==null?'':String(s)).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toLowerCase();
+const chv=s=>nrm(s).replace(/[^a-z0-9]/g,'');
+
+let mTxt='',mStep=1,mRows=[],mFiltro='todos',mVis=60,mOrdem='auto';
+let mPad={funcao:'',area:'',responsavel:'',situacao:'Ativo'};
+let mOpc={criarAreas:true,novasFuncoes:true,atualizar:false,maiusculas:true};
+let mAp={funcao:'',area:'',responsavel:'',situacao:'',soVazio:true};
+
+/* ---- rascunho: a conferência não se perde se fechar o app ---- */
+function mSave(){try{localStorage.setItem(MKEY,JSON.stringify(
+  {txt:mTxt,step:mStep,rows:mRows,ordem:mOrdem,pad:mPad,opc:mOpc}))}catch(e){}}
+function mLoad(){try{
+  const d=JSON.parse(localStorage.getItem(MKEY));if(!d)return;
+  mTxt=d.txt||'';mStep=d.step===2?2:1;mRows=Array.isArray(d.rows)?d.rows:[];mOrdem=d.ordem||'auto';
+  mPad=Object.assign({funcao:'',area:'',responsavel:'',situacao:'Ativo'},d.pad||{});
+  mOpc=Object.assign({criarAreas:true,novasFuncoes:true,atualizar:false,maiusculas:true},d.opc||{});
+}catch(e){}}
+function mClear(){mTxt='';mStep=1;mRows=[];mFiltro='todos';mVis=60;
+  try{localStorage.removeItem(MKEY)}catch(e){}}
+
+/* ---- leitura do texto colado ---- */
+function mSplit(l){
+  if(l.indexOf('\t')>=0)return l.split('\t');
+  if(l.indexOf(';')>=0)return l.split(';');
+  if(l.indexOf('|')>=0)return l.split('|');
+  if(l.indexOf(',')>=0)return l.split(',');
+  let m=l.match(/^\s*\d{1,4}\s*[.)]\s+(.+)$/);      if(m)return[m[1]];        /* lista numerada */
+  m=l.match(/^\s*(\d{2,10})\s*[-–]?\s+(.+)$/);      if(m)return[m[1],m[2]];   /* 1052 Carlos Silva */
+  m=l.match(/^(.+?)\s+[-–]\s+(.+)$/);               if(m)return[m[1],m[2]];   /* Carlos Silva - Montador */
+  return [l];
+}
+function mHeader(cells){
+  const map=cells.map(c=>{const k=chv(c);let f='';
+    Object.keys(M_ALIAS).forEach(campo=>{if(!f&&M_ALIAS[campo].indexOf(k)>=0)f=campo});return f});
+  return (map.filter(Boolean).length>=2&&map.indexOf('nome')>=0)?map:null;
+}
+function mAuto(cells){
+  const a=(cells[0]||'').trim(),b=(cells[1]||'').trim();
+  if(cells.length>1&&/^\d{1,10}$/.test(a))return M_ORDENS.mn;
+  if(cells.length>1&&/^\d{1,10}$/.test(b))return M_ORDENS.nm;
+  return M_ORDENS.nf;
+}
+function mSit(v){const n=nrm(v);
+  if(!n)return'';
+  if(n.indexOf('feri')===0)return'Férias';
+  if(n.indexOf('desl')===0||n.indexOf('demit')===0||n==='inativo')return'Desligado';
+  if(n.indexOf('ativ')===0||n==='trabalhando')return'Ativo';
+  return'';}
+function mTitulo(s){
+  const min=['de','da','do','das','dos','e','di','du','del','van','von'];
+  return s.toLowerCase().split(' ').map((w,i)=>
+    (i>0&&min.indexOf(w)>=0)?w:(w.charAt(0).toUpperCase()+w.slice(1))).join(' ');
+}
+function mParse(){
+  const linhas=mTxt.split(/\r?\n/),out=[];
+  let map=null,ini=0;
+  for(let i=0;i<linhas.length;i++){
+    const t=linhas[i].trim();if(!t)continue;
+    const h=mHeader(mSplit(t).map(c=>c.trim()));
+    if(h){map=h;ini=i+1}
+    break;
+  }
+  for(let i=ini;i<linhas.length;i++){
+    const t=linhas[i].trim();
+    if(!t||/^[-=_*·•\s]+$/.test(t))continue;
+    const cells=mSplit(t).map(c=>c.replace(/^["']+|["']+$/g,'').trim());
+    if(!cells.some(c=>c))continue;
+    const ordem=(mOrdem!=='auto')?M_ORDENS[mOrdem]:(map||mAuto(cells));
+    const r={id:uid(),matricula:'',nome:'',funcao:'',area:'',responsavel:'',situacao:'',fora:false,linha:i+1};
+    if(ordem===M_ORDENS.so)r.nome=cells.join(' ');
+    else ordem.forEach((campo,ix)=>{if(campo&&cells[ix])r[campo]=cells[ix]});
+    r.matricula=String(r.matricula||'').replace(/\s+/g,'');
+    r.nome=(r.nome||'').replace(/\s+/g,' ').trim();
+    if(mOpc.maiusculas&&r.nome&&r.nome===r.nome.toUpperCase()&&/[A-ZÀ-Ú]/.test(r.nome))r.nome=mTitulo(r.nome);
+    r.situacao=mSit(r.situacao);
+    if(!r.funcao&&mPad.funcao)r.funcao=mPad.funcao;
+    if(!r.area&&mPad.area)r.area=mPad.area;
+    if(!r.responsavel&&mPad.responsavel)r.responsavel=mPad.responsavel;
+    if(!r.situacao)r.situacao=mPad.situacao||'Ativo';
+    const fx=state.funcoes.find(f=>chv(f)===chv(r.funcao));if(fx)r.funcao=fx;
+    const ax=state.areas.find(a=>chv(a.nome)===chv(r.area));if(ax)r.area=ax.nome;
+    out.push(r);
+  }
+  return out;
+}
+
+/* ---- conferência: o que está pronto, o que precisa de olho ---- */
+function mAval(){
+  const vistos={},nomes={},res={ok:0,upd:0,avi:0,err:0,fora:0};
+  const rows=mRows.map(r=>{
+    const o=Object.assign({},r);o.st='ok';o.msg='';
+    if(r.fora){o.st='fora';o.msg='Fora do envio';res.fora++;return o}
+    if(!r.nome){o.st='err';o.msg='Falta o nome';res.err++;return o}
+    const mk=String(r.matricula||'');
+    if(mk){
+      if(vistos[mk]){o.st='err';o.msg='Matrícula '+mk+' repetida na lista';res.err++;return o}
+      vistos[mk]=true;
+      const ex=state.trabalhadores.find(t=>String(t.matricula||'')===mk);
+      if(ex){
+        if(mOpc.atualizar){o.st='upd';o.msg='Atualiza o cadastro de '+ex.nome;o.alvo=ex.id;res.upd++;return o}
+        o.st='err';o.msg='Matrícula já cadastrada para '+ex.nome;res.err++;return o;
+      }
+    }
+    const nk=chv(r.nome);
+    if(nomes[nk]){o.st='avi';o.msg='Nome repetido na lista';res.avi++;return o}
+    nomes[nk]=true;
+    const mesmo=state.trabalhadores.find(t=>chv(t.nome)===nk);
+    if(mesmo){o.st='avi';o.msg='Já existe "'+mesmo.nome+'" na base';res.avi++;return o}
+    res.ok++;return o;
+  });
+  return {rows,res};
+}
+const M_PILL={ok:['presente','Novo'],upd:['ferias','Atualiza'],avi:['folga','Confira'],
+  err:['ausente','Corrigir'],fora:['fora','Fora']};
+
+/* ---- tela ---- */
+function vMassa(){return mStep===2?mMassa2():mMassa1()}
+
+function mDL(sfx){
+  return `<datalist id="dlF${sfx}">${state.funcoes.map(f=>`<option value="${esc(f)}">`).join('')}</datalist>
+  <datalist id="dlA${sfx}">${state.areas.map(a=>`<option value="${esc(a.nome)}">`).join('')}</datalist>`;
+}
+function mSteps(n){
+  return `<div class="steps an">
+    <div class="${n===1?'on':''}">1. Colar<i>a lista toda</i></div>
+    <div class="${n===2?'on':''}">2. Conferir<i>e corrigir</i></div>
+    <div class="">3. Enviar<i>ao sistema</i></div></div>`;
+}
+function mMassa1(){
+  const i=intro('massa','Cadastre todo mundo de uma vez',
+    `Cole a lista inteira — <b>um por linha</b> — confira na tela seguinte e só então envie.
+     <ul><li>Funciona colando do <b>Excel</b>, do WhatsApp ou de uma lista digitada</li>
+     <li>Aceita <b>matrícula, nome, função, área e encarregado</b> separados por vírgula, ponto e vírgula ou TAB</li>
+     <li><b>Nada entra no sistema</b> antes de você conferir na próxima tela</li></ul>`);
+  const nLin=mTxt.split(/\r?\n/).filter(l=>l.trim()).length;
+  const sw=(v,f)=>`<div class="sw ${v?'on':''}" onclick="${f}"></div>`;
+  return i+mSteps(1)+`
+    ${mDL('v')}
+    <div class="card an">
+      <div class="field" style="margin-bottom:8px"><label>Cole aqui a lista de trabalhadores</label>
+        <textarea class="mta" rows="9" oninput="mTxt=this.value;mSave()"
+          placeholder="Um por linha. Exemplos que funcionam:&#10;&#10;1052;Carlos Silva;Montador;Pátio 2&#10;1053, Ana Souza, Soldador&#10;José Lima - Ajudante&#10;Maria Santos">${esc(mTxt)}</textarea>
+        <div class="hint">${nLin?nLin+' linha'+(nLin>1?'s':'')+' na área de texto.':'Pode colar direto do Excel — cada coluna vira um campo.'}</div>
+      </div>
+      <div class="brow" style="margin-top:4px">
+        <button class="btn ghost sm" style="flex:1" onclick="mArquivo()">
+          <svg viewBox="0 0 24 24"><path d="M13 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9z"/><path d="M13 3v6h6"/></svg>Arquivo</button>
+        <button class="btn ghost sm" style="flex:1" onclick="mColar()">
+          <svg viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="4" rx="1.5"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/></svg>Colar</button>
+      </div>
+      <div class="brow">
+        <button class="btn ghost sm" style="flex:1" onclick="mExemplo()">Ver exemplo</button>
+        <button class="btn ghost sm ${mTxt?'':'off'}" style="flex:1" onclick="mLimpar()">Limpar</button>
+      </div>
+    </div>
+
+    <div class="hsec an" style="margin-top:12px">
+      <button class="hq" onclick="togHelp(this)">
+        <span class="l"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a1.6 1.6 0 0 0 .3 1.8M4.6 11a1.6 1.6 0 0 0-.3-1.8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span>
+        <span class="t">Opções da leitura</span></span>
+        <svg class="arw" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      <div class="ha">
+        <div class="field"><label>Ordem das colunas</label>
+          <select onchange="mOrdem=this.value;mSave();render()">
+            ${M_ORDEM_OPC.map(o=>`<option value="${o.k}" ${mOrdem===o.k?'selected':''}>${o.l}</option>`).join('')}
+          </select><div class="hint">Se a primeira linha for um cabeçalho (Nome, Função...), ele é reconhecido sozinho.</div></div>
+        <div class="trow"><div><div class="tt">Arrumar NOMES EM MAIÚSCULA</div>
+          <div class="td">"JOSE DA SILVA" vira "Jose da Silva".</div></div>
+          ${sw(mOpc.maiusculas,"mOpc.maiusculas=!mOpc.maiusculas;mSave();render()")}</div>
+        <div style="height:12px"></div>
+        <div style="font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:9px">Valem para quem não trouxer o dado na lista</div>
+        <div class="field"><label>Função padrão</label>
+          <input list="dlFv" value="${esc(mPad.funcao)}" placeholder="Ex: Ajudante"
+            onchange="mPad.funcao=this.value.trim();mSave()"></div>
+        <div class="field"><label>Área / equipe padrão</label>
+          <input list="dlAv" value="${esc(mPad.area)}" placeholder="Ex: Pátio 2"
+            onchange="mPad.area=this.value.trim();mSave()"></div>
+        <div class="field"><label>Encarregado padrão</label>
+          <input value="${esc(mPad.responsavel)}" placeholder="Ex: Roberto"
+            onchange="mPad.responsavel=this.value.trim();mSave()"></div>
+        <div class="field"><label>Situação cadastral padrão</label>
+          <select onchange="mPad.situacao=this.value;mSave()">
+            ${['Ativo','Férias','Desligado'].map(o=>`<option ${mPad.situacao===o?'selected':''}>${o}</option>`).join('')}
+          </select></div>
+      </div>
+    </div>
+
+    <div class="mbar"><button class="btn ${nLin?'':'off'}" onclick="mConferir()">
+      <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Conferir ${nLin||''} ${nLin===1?'linha':'linhas'}</button></div>
+    <div style="height:6px"></div>`;
+}
+function mConferir(){
+  const rows=mParse();
+  if(!rows.length){toast('Cole a lista primeiro');return}
+  mRows=rows;mStep=2;mFiltro='todos';mVis=60;mSave();render();window.scrollTo(0,0);
+  toast(rows.length+' linha'+(rows.length>1?'s lidas':' lida'));
+}
+function mMassa2(){
+  const av=mAval(),r=av.res,prontos=r.ok+r.upd;
+  const dupBase=av.rows.some(x=>x.st==='err'&&x.msg.indexOf('já cadastrada')>=0);
+  let list=av.rows;
+  if(mFiltro==='ok')list=list.filter(x=>x.st==='ok'||x.st==='upd');
+  else if(mFiltro==='avi')list=list.filter(x=>x.st==='avi');
+  else if(mFiltro==='err')list=list.filter(x=>x.st==='err');
+  else if(mFiltro==='fora')list=list.filter(x=>x.st==='fora');
+  const vis=list.slice(0,mVis);
+  const fp=(k,l,n)=>`<button class="fpill ${mFiltro===k?'on':''}" onclick="mFiltro='${k}';mVis=60;render()">${l}${n!=null?' '+n:''}</button>`;
+  return mSteps(2)+`
+    ${mDL('v')}
+    <div class="stats an" style="margin-top:0">
+      <div class="stat g"><div class="n">${prontos}</div><div class="l">Prontos</div></div>
+      <div class="stat a"><div class="n">${r.avi}</div><div class="l">Confira</div></div>
+      <div class="stat r"><div class="n">${r.err}</div><div class="l">Corrigir</div></div>
+    </div>
+    ${r.err?`<div class="mtip an">${r.err===1?'<b>1 linha</b> não vai':'<b>'+r.err+' linhas</b> não vão'} enquanto tiver problema.
+      Toque na linha vermelha para corrigir${dupBase?', ou ligue <b>Atualizar quem já existe</b> se for atualização de cadastro':''}.</div>`:''}
+    ${dupBase&&!mOpc.atualizar?`<div class="card an" style="margin-bottom:12px">
+      <div class="trow"><div><div class="tt">Atualizar quem já existe</div>
+        <div class="td">Mesma matrícula na base: em vez de barrar, atualiza o cadastro.</div></div>
+        <div class="sw" onclick="mOpc.atualizar=true;mSave();render();toast('Vai atualizar os já cadastrados')"></div></div></div>`:''}
+    ${mOpc.atualizar?`<div class="card an" style="margin-bottom:12px">
+      <div class="trow"><div><div class="tt">Atualizar quem já existe</div>
+        <div class="td">Ligado — ${r.upd} cadastro(s) serão atualizados.</div></div>
+        <div class="sw on" onclick="mOpc.atualizar=false;mSave();render()"></div></div></div>`:''}
+
+    <div class="brow an" style="margin:0 0 12px">
+      <button class="btn ghost sm" style="flex:1" onclick="mAplicar()">
+        <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Aplicar a todos</button>
+      <button class="btn ghost sm" style="flex:1" onclick="mVoltar()">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>Voltar ao texto</button>
+    </div>
+
+    <div class="fscroll an">
+      ${fp('todos','Todos',av.rows.length)}${fp('ok','Prontos',prontos)}
+      ${r.avi?fp('avi','Confira',r.avi):''}${r.err?fp('err','Corrigir',r.err):''}
+      ${r.fora?fp('fora','Fora',r.fora):''}
+    </div>
+    ${r.err&&mFiltro!=='fora'?`<div style="margin:0 2px 12px"><button class="btn ghost sm" style="width:100%"
+      onclick="mTirarErros()">Tirar da lista ${r.err===1?'a linha com problema':'as '+r.err+' com problema'}</button></div>`:''}
+    ${mFiltro==='fora'&&r.fora?`<div style="margin:0 2px 12px"><button class="btn ghost sm" style="width:100%"
+      onclick="mVoltarTodos()">Devolver ${r.fora} ao envio</button></div>`:''}
+
+    ${vis.length?vis.map((x,ix)=>mRow(x,ix)).join(''):
+      `<div class="empty an"><div class="ec"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+       <p>Nada nesse filtro.</p></div>`}
+    ${list.length>mVis?`<div style="margin-top:12px"><button class="btn ghost" onclick="mVis+=60;render()">
+      Mostrar mais (${list.length-mVis} restantes)</button></div>`:''}
+
+    <div class="mbar"><button class="btn ${prontos?'':'off'}" onclick="mEnviar()">
+      <svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>Enviar ${prontos} ao sistema</button></div>
+    <div style="height:6px"></div>`;
+}
+function mRow(x,ix){
+  const pl=M_PILL[x.st]||M_PILL.ok;
+  const areaNova=x.area&&!state.areas.some(a=>chv(a.nome)===chv(x.area));
+  const meta=[x.matricula?esc(x.matricula):'',esc(x.funcao||'sem função'),
+    x.area?esc(x.area)+(areaNova?' (nova)':''):'sem área'].filter(Boolean).join(' · ');
+  const cor=x.st==='err'?'var(--red)':x.st==='avi'?'var(--amber)':x.st==='upd'?'var(--blue)':'var(--muted)';
+  return `<div class="row${ix<12?' an':''}" style="${x.fora?'opacity:.55;':''}" onclick="mOpen('${x.id}')">
+    <div class="av" style="background:${avColor(x.nome||'?')}">${ini(x.nome)}</div>
+    <div class="ri"><div class="n">${esc(x.nome||'(sem nome)')}</div>
+      <div class="m m2">${meta}${x.situacao&&x.situacao!=='Ativo'?' · '+esc(x.situacao):''}</div>
+      ${x.msg&&x.st!=='ok'?`<div class="mw" style="color:${cor}">${esc(x.msg)}</div>`:''}</div>
+    <span class="pill ${pl[0]}">${pl[1]}</span>
+    <button class="ib2 ${x.fora?'':'del'}" onclick="event.stopPropagation();mFora('${x.id}')">
+      ${x.fora?'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>':'<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>'}</button></div>`;
+}
+function mFora(id){
+  const r=mRows.find(x=>x.id===id);if(!r)return;
+  r.fora=!r.fora;mSave();render();toast(r.fora?'Tirado do envio':'Devolvido ao envio');
+}
+function mTirarErros(){
+  const ids=mAval().rows.filter(x=>x.st==='err').map(x=>x.id);
+  if(!ids.length)return;
+  mRows.forEach(r=>{if(ids.indexOf(r.id)>=0)r.fora=true});
+  mSave();render();toast(ids.length+' tirado(s) do envio');
+}
+function mVoltarTodos(){mRows.forEach(r=>r.fora=false);mSave();render();toast('Todos de volta')}
+function mVoltar(){
+  if(mRows.length&&!confirm('Voltar para o texto? A conferência é refeita quando você tocar em "Conferir".'))return;
+  mStep=1;mSave();render();window.scrollTo(0,0);
+}
+function mLimpar(){
+  if(!mTxt)return;
+  if(!confirm('Limpar o texto colado?'))return;
+  mTxt='';mRows=[];mSave();render();
+}
+function mExemplo(){
+  mTxt=['Matrícula;Nome;Função;Área;Encarregado',
+        '1052;Carlos Silva;Montador;Pátio 2;Roberto',
+        '1053;Ana Souza;Soldador;Pátio 2;Roberto',
+        '1054;José Lima;Ajudante;Montagem;Marcos'].join('\n');
+  mSave();render();toast('Exemplo colado — troque pelos seus');
+}
+async function mColar(){
+  try{
+    const t=await navigator.clipboard.readText();
+    if(!t||!t.trim()){toast('Não achei nada copiado');return}
+    mTxt=(mTxt.trim()?mTxt.trim()+'\n':'')+t.trim();mSave();render();toast('Lista colada');
+  }catch(e){toast('Toque no campo e use "Colar" do teclado')}
+}
+function mArquivo(){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='.csv,.txt,text/csv,text/plain';
+  inp.onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    const usa=t=>{mTxt=String(t||'').replace(/^\ufeff/,'').trim();mSave();render();
+      toast('Arquivo carregado')};
+    const r=new FileReader();
+    r.onload=()=>{const t=String(r.result||'');
+      if(t.indexOf('\ufffd')>=0){const r2=new FileReader();r2.onload=()=>usa(r2.result);
+        r2.readAsText(f,'ISO-8859-1');return}
+      usa(t)};
+    r.onerror=()=>toast('Não consegui ler o arquivo');
+    r.readAsText(f,'UTF-8');
+  };
+  inp.click();
+}
+
+/* ---- editar uma linha antes de enviar ---- */
+function mOpen(id){
+  const r=mRows.find(x=>x.id===id);if(!r)return;
+  const av=mAval().rows.find(x=>x.id===id)||{st:'ok',msg:''};
+  const co=['Ativo','Férias','Desligado'].map(o=>`<option ${r.situacao===o?'selected':''}>${o}</option>`).join('');
+  const cor=av.st==='err'?'var(--red)':av.st==='avi'?'var(--amber)':'var(--blue)';
+  $('#mb').innerHTML=`<h2>Conferir linha</h2>
+    <div class="msub">Ainda não foi para o sistema — dá pra mudar tudo.</div>
+    ${mDL('m')}
+    ${av.msg&&av.st!=='ok'?`<div class="mtip" style="background:var(--card);border:1.5px solid ${cor};color:${cor};font-weight:700">${esc(av.msg)}</div>`:''}
+    <div class="field"><label>Matrícula</label>
+      <input id="mrM" inputmode="numeric" placeholder="Ex: 1052" value="${esc(r.matricula)}">
+      <div class="hint">Pode ficar vazia. Se preencher, não pode repetir.</div></div>
+    <div class="field"><label>Nome completo</label>
+      <input id="mrN" placeholder="Ex: Carlos Silva" value="${esc(r.nome)}"></div>
+    <div class="field"><label>Função</label>
+      <input id="mrF" list="dlFm" placeholder="Ex: Montador" value="${esc(r.funcao)}"></div>
+    <div class="field"><label>Área / Equipe</label>
+      <input id="mrA" list="dlAm" placeholder="Ex: Pátio 2" value="${esc(r.area)}">
+      <div class="hint">Se a área não existir, ela é criada no envio.</div></div>
+    <div class="field"><label>Encarregado</label>
+      <input id="mrR" placeholder="Ex: Roberto" value="${esc(r.responsavel)}"></div>
+    <div class="field"><label>Situação cadastral</label><select id="mrS">${co}</select></div>
+    <div class="brow" style="margin-top:0"><button class="btn ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" onclick="mSalvarRow('${id}')">Salvar</button></div>
+    <div style="height:10px"></div>
+    <button class="btn ghost" style="color:${r.fora?'var(--green)':'var(--red)'}"
+      onclick="closeModal();mFora('${id}')">${r.fora?'Devolver ao envio':'Tirar da lista'}</button>
+    <div style="height:6px"></div>`;
+  openModal();
+}
+function mSalvarRow(id){
+  const r=mRows.find(x=>x.id===id);if(!r)return;
+  const n=$('#mrN').value.trim();
+  if(!n){toast('Informe o nome');return}
+  r.matricula=$('#mrM').value.trim().replace(/\s+/g,'');
+  r.nome=n.replace(/\s+/g,' ');
+  r.funcao=$('#mrF').value.trim();
+  r.area=$('#mrA').value.trim();
+  r.responsavel=$('#mrR').value.trim();
+  r.situacao=$('#mrS').value;
+  mSave();closeModal();render();toast('Linha corrigida');
+}
+
+/* ---- aplicar um valor a todo mundo de uma vez ---- */
+function mAplicar(){
+  const co=['Ativo','Férias','Desligado'].map(o=>`<option value="${o}" ${mAp.situacao===o?'selected':''}>${o}</option>`).join('');
+  $('#mb').innerHTML=`<h2>Aplicar a todos</h2>
+    <div class="msub">Vale para as ${mRows.filter(r=>!r.fora).length} linhas que estão no envio.</div>
+    ${mDL('p')}
+    <div class="field"><label>Função</label>
+      <input list="dlFp" placeholder="Deixe vazio para não mexer" value="${esc(mAp.funcao)}"
+        oninput="mAp.funcao=this.value"></div>
+    <div class="field"><label>Área / Equipe</label>
+      <input list="dlAp" placeholder="Deixe vazio para não mexer" value="${esc(mAp.area)}"
+        oninput="mAp.area=this.value"></div>
+    <div class="field"><label>Encarregado</label>
+      <input placeholder="Deixe vazio para não mexer" value="${esc(mAp.responsavel)}"
+        oninput="mAp.responsavel=this.value"></div>
+    <div class="field"><label>Situação cadastral</label>
+      <select onchange="mAp.situacao=this.value">
+        <option value="">Não alterar</option>${co}</select></div>
+    <div class="trow"><div><div class="tt">Só onde estiver vazio</div>
+      <div class="td">Desligue para substituir o que já está preenchido.</div></div>
+      <div class="sw ${mAp.soVazio?'on':''}" onclick="mAp.soVazio=!mAp.soVazio;mAplicar()"></div></div>
+    <div class="brow"><button class="btn ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" onclick="mAplicarOk()">Aplicar</button></div>
+    <div style="height:6px"></div>`;
+  openModal();
+}
+function mAplicarOk(){
+  const campos=[['funcao',mAp.funcao.trim()],['area',mAp.area.trim()],
+    ['responsavel',mAp.responsavel.trim()],['situacao',mAp.situacao]];
+  const usar=campos.filter(c=>c[1]);
+  if(!usar.length){toast('Preencha ao menos um campo');return}
+  let n=0;
+  mRows.forEach(r=>{
+    if(r.fora)return;
+    let mudou=false;
+    usar.forEach(([k,v])=>{if(!mAp.soVazio||!r[k]){if(r[k]!==v){r[k]=v;mudou=true}}});
+    if(mudou)n++;
+  });
+  mSave();closeModal();render();toast(n?n+' linha(s) atualizada(s)':'Nada para mudar');
+}
+
+/* ---- envio final ---- */
+function mEnviar(){
+  const av=mAval();
+  const env=av.rows.filter(x=>x.st==='ok'||x.st==='avi'||x.st==='upd');
+  if(!env.length){toast('Nada pronto para enviar');return}
+  const upd=env.filter(x=>x.st==='upd').length,nov=env.length-upd;
+  if(!confirm(`Enviar para o sistema?\n\n${nov} cadastro(s) novo(s)`
+    +(upd?`\n${upd} cadastro(s) atualizado(s)`:'')
+    +(av.res.err?`\n\n${av.res.err} com problema ficam de fora.`:'')))return;
+  const novasAreas={},criados=[];let nUpd=0,nAreas=0,nFunc=0;
+  env.forEach(r=>{
+    let areaId=null;
+    if(r.area){
+      const k=chv(r.area),ex=state.areas.find(a=>chv(a.nome)===k);
+      if(ex)areaId=ex.id;
+      else if(mOpc.criarAreas){
+        if(!novasAreas[k]){const id=uid();
+          state.areas.push({id,nome:r.area,responsavel:r.responsavel||''});novasAreas[k]=id;nAreas++}
+        areaId=novasAreas[k];
+      }
+    }
+    if(r.funcao&&mOpc.novasFuncoes&&!state.funcoes.some(f=>chv(f)===chv(r.funcao))){
+      state.funcoes.push(r.funcao);nFunc++;
+    }
+    const d={matricula:r.matricula||'',nome:r.nome,funcao:r.funcao||'',areaId:areaId,
+      responsavel:r.responsavel||'',situacaoCadastral:r.situacao||'Ativo'};
+    if(r.st==='upd'&&r.alvo){
+      const t=state.trabalhadores.find(x=>x.id===r.alvo);
+      if(t){Object.assign(t,d);nUpd++;return}
+    }
+    const id=uid();state.trabalhadores.push({id,...d});criados.push(id);
+  });
+  state.ultimoLote={ids:criados,upd:nUpd,areas:nAreas,funcoes:nFunc,dia:todayISO()};
+  save();mClear();go('pessoas');
+  toast(criados.length+' cadastrado(s)'+(nUpd?' · '+nUpd+' atualizado(s)':''));
+}
+
+/* ---- desfazer o último lote (só o que foi criado) ---- */
+function mUndoCard(){
+  const u=state.ultimoLote;
+  if(!u||!u.ids||!u.ids.length||u.dia!==todayISO())return'';
+  const extra=[u.upd?u.upd+' atualizado(s)':'',u.areas?u.areas+' área(s) nova(s)':'',
+    u.funcoes?u.funcoes+' função(ões) nova(s)':''].filter(Boolean).join(' · ');
+  return `<div class="card an" style="margin-bottom:14px">
+    <div class="trow" style="align-items:flex-start">
+      <div><div class="tt">${u.ids.length} cadastrado(s) em massa</div>
+        <div class="td">${extra||'Confira a lista abaixo.'} Se veio algo errado, dá pra desfazer os novos.</div></div></div>
+    <div class="brow">
+      <button class="btn ghost sm" style="flex:1;color:var(--red)" onclick="mDesfazer()">Desfazer</button>
+      <button class="btn ghost sm" style="flex:1" onclick="state.ultimoLote=null;save();render()">Está certo</button>
+    </div></div>`;
+}
+function mDesfazer(){
+  const u=state.ultimoLote;
+  if(!u||!u.ids||!u.ids.length)return;
+  if(!confirm(`Desfazer o último envio?\n\n${u.ids.length} cadastro(s) criado(s) agora serão apagados.`
+    +(u.upd?`\nOs ${u.upd} atualizados NÃO voltam ao que eram.`:'')
+    +`\nÁreas e funções criadas continuam.`))return;
+  const ids=u.ids;
+  state.trabalhadores=state.trabalhadores.filter(t=>ids.indexOf(t.id)<0);
+  state.ultimoLote=null;save();render();toast(ids.length+' cadastro(s) desfeito(s)');
+}
 
 /* ---------- ÁREAS ---------- */
 function vAreas(){
@@ -1195,7 +1713,7 @@ function addFunc(){const v=$('#cfF').value.trim();if(!v)return;
 function delFunc(i){state.funcoes.splice(i,1);save();render()}
 function resetAll(){if(!confirm('Apagar TODOS os dados? Não dá pra desfazer.'))return;
   if(!confirm('Tem certeza mesmo?'))return;
-  const lic=state.licenca;localStorage.removeItem(KEY);state=load();state.licenca=lic;save();go('inicio');toast('Dados apagados')}
+  const lic=state.licenca;localStorage.removeItem(KEY);mClear();state=load();state.licenca=lic;save();go('inicio');toast('Dados apagados')}
 
 /* ---------- AJUDA ---------- */
 function vAjuda(){
@@ -1215,6 +1733,24 @@ function vAjuda(){
      <li><b>Pessoas</b> (embaixo) → <b>+</b> → cadastre cada trabalhador</li></ol>
      Depois disso nunca mais precisa refazer.
      <div class="tip">A matrícula não pode repetir. Se aparecer "Matrícula já existe", alguém já usa esse número.</div>`)}
+  ${H('<path d="M4 6h10M4 12h10M4 18h7"/><path d="M17.5 14v6M14.5 17h6"/>','Cadastro em Massa: todos de uma vez',
+    `Tem muita gente e não dá pra digitar um por um? Menu (☰) → <b>Cadastro em Massa</b>.
+     <ol><li><b>Cole a lista</b> — um por linha. Pode vir do Excel, do WhatsApp ou digitada na hora</li>
+     <li>Toque em <b>Conferir</b>. Nada foi para o sistema ainda</li>
+     <li>Na conferência, cada linha mostra como ficou:
+       <ul><li><b>Novo</b> — pronto para entrar</li>
+       <li><b>Confira</b> — entra, mas tem algo parecido na base (nome repetido)</li>
+       <li><b>Corrigir</b> — não entra assim: falta o nome ou a matrícula já existe</li></ul></li>
+     <li>Toque numa linha para <b>arrumar</b>, no <b>×</b> para tirar do envio</li>
+     <li>Só no fim: <b>Enviar ao sistema</b></li></ol>
+     <b>O que a lista aceita:</b> matrícula, nome, função, área e encarregado — separados por
+     <b>ponto e vírgula</b>, <b>vírgula</b>, <b>TAB</b> ou <b>|</b>. Se a linha tiver só o nome, também serve.
+     <br><br><b>Atalhos que ajudam</b>
+     <ul><li><b>Aplicar a todos</b> — coloca a mesma área/função/encarregado em todo mundo de uma vez</li>
+     <li><b>Opções da leitura</b> — valores padrão e ordem das colunas, se ela não for reconhecida</li>
+     <li><b>Atualizar quem já existe</b> — mesma matrícula na base atualiza o cadastro em vez de barrar</li></ul>
+     <div class="tip">Deu ruim? Logo depois do envio aparece o botão <b>Desfazer</b> na tela de Trabalhadores —
+     ele apaga só os que acabaram de entrar.</div>`)}
   ${H('<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>','Marcar presença',
     `Toque no nome da pessoa. Abre a janela com:
      <ul><li><b>Presente</b> — veio trabalhar</li><li><b>Ausente</b> — faltou (aparece campo de motivo)</li>
@@ -1452,7 +1988,7 @@ function openDrawer(){
   const L=licStatus();
   $('#drF').innerHTML=`Dados salvos neste aparelho<br>${L.full?'Versão liberada':'Teste até '+fmtD(L.expira)}`;
   $('#drL').innerHTML=MENU.map(m=>`<button class="${cur===m.k?'on':''}" onclick="go('${m.k}')">
-    <svg viewBox="0 0 24 24">${(NAV.find(n=>n.k===m.k)||{}).i||'<circle cx="12" cy="12" r="8"/>'}</svg>${m.l}</button>`).join('')
+    <svg viewBox="0 0 24 24">${m.i||(NAV.find(n=>n.k===m.k)||{}).i||'<circle cx="12" cy="12" r="8"/>'}</svg>${m.l}</button>`).join('')
     +`<div class="dsep"></div>
     <button onclick="doExport()"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Fazer backup</button>
     <button onclick="doImport()"><svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 21h14"/></svg>Restaurar backup</button>`;
@@ -1461,6 +1997,7 @@ function closeDrawer(){$('#scrim').classList.remove('open');$('#drawer').classLi
 function openModal(){$('#ms').classList.add('open')}
 function closeModal(){$('#ms').classList.remove('open')}
 
+mLoad();
 render();
 setupManifest();
 maybeShowInstall();

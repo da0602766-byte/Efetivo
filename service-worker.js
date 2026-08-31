@@ -1,4 +1,4 @@
-const CACHE = 'efetivo-pwa-v1';
+const CACHE = 'efetivo-pwa-v2';
 const CORE = [
   './',
   './index.html',
